@@ -2,27 +2,65 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>SnapStrip Print</title>
-  <link rel="stylesheet" href="style.css">
+  <title>SnapStrip Photo Print</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      max-width: 600px;
+      margin: auto;
+      background-color: #f9f9f9;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    input[type="file"] {
+      padding: 0.5rem;
+    }
+    #previewImage {
+      max-width: 100%;
+      border: 1px solid #ccc;
+      margin-top: 1rem;
+    }
+    #actions {
+      display: none;
+      margin-top: 1rem;
+      gap: 1rem;
+    }
+    button {
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-  <h1>📸 SnapStrip: Create Your Collage</h1>
 
+  <h2>Upload Your Photos to Print</h2>
   <form id="uploadForm">
-    <label>Left Photo: <input type="file" accept="image/*" id="leftPhoto" required></label><br>
-    <label>Right Photo: <input type="file" accept="image/*" id="rightPhoto" required></label><br>
-    <label for="copies">Number of Copies (max 5):</label>
-<input type="number" id="copies" name="copies" value="1" min="1" max="5" required>
+    <label for="leftPhoto">Left Photo:</label>
+    <input type="file" id="leftPhoto" accept="image/*" required>
 
-    <button type="submit">Preview</button>
+    <label for="rightPhoto">Right Photo:</label>
+    <input type="file" id="rightPhoto" accept="image/*" required>
+
+    <label for="copies">Number of Copies (max 5):</label>
+    <input type="number" id="copies" name="copies" value="1" min="1" max="5" required>
+
+    <button type="submit">Generate Preview</button>
   </form>
 
-  <canvas id="previewCanvas" width="1500" height="1050"></canvas> <!-- 5x3.5in @ 210dpi -->
+  <img id="previewImage" alt="Preview will appear here" />
 
-  <div id="actions" style="display: none;">
-    <button id="confirmBtn">Confirm & Print</button>
-    <button id="goBackBtn">Go Back</button>
+  <div id="actions">
+    <button id="confirmBtn">Print</button>
+    <button id="backBtn">Go Back</button>
   </div>
+
+  <canvas id="canvas" style="display: none;"></canvas>
 
   <script src="script.js"></script>
 </body>
