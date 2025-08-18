@@ -17,16 +17,21 @@ window.addEventListener('DOMContentLoaded', () => {
   let leftImg = new Image();
   let rightImg = new Image();
 
+  // Draw the default template on page load
+  templateImg.onload = () => {
+    canvas.width = templateImg.width;
+    canvas.height = templateImg.height;
+    ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+    previewImage.src = canvas.toDataURL(); // show template in preview
+  };
+
   function drawFinalImage() {
-    // Draw template
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
 
-    // Draw left image in 2x2 inch area (280x280px)
     const maxSize = 280;
 
     if (leftImg.complete && rightImg.complete) {
-      // Scale and center left image
       let scaleLeft = Math.min(maxSize / leftImg.width, maxSize / leftImg.height);
       let drawWLeft = leftImg.width * scaleLeft;
       let drawHLeft = leftImg.height * scaleLeft;
@@ -34,17 +39,12 @@ window.addEventListener('DOMContentLoaded', () => {
       let dyLeft = 403 + (maxSize - drawHLeft) / 2;
       ctx.drawImage(leftImg, dxLeft, dyLeft, drawWLeft, drawHLeft);
 
-      // Scale and center right image
       let scaleRight = Math.min(maxSize / rightImg.width, maxSize / rightImg.height);
       let drawWRight = rightImg.width * scaleRight;
       let drawHRight = rightImg.height * scaleRight;
       let dxRight = 928 + (maxSize - drawWRight) / 2;
       let dyRight = 403 + (maxSize - drawHRight) / 2;
       ctx.drawImage(rightImg, dxRight, dyRight, drawWRight, drawHRight);
-
-      // Show preview
-      previewImage.src = canvas.toDataURL();
-      actions.style.display = 'flex';
     }
   }
 
@@ -54,7 +54,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const leftFile = leftPhotoInput.files[0];
     const rightFile = rightPhotoInput.files[0];
-    const copies = Math.min(5, parseInt(copiesInput.value) || 1);
 
     if (!leftFile || !rightFile) return;
 
@@ -63,13 +62,25 @@ window.addEventListener('DOMContentLoaded', () => {
 
     readerLeft.onload = function (event) {
       leftImg = new Image();
-      leftImg.onload = drawFinalImage;
+      leftImg.onload = () => {
+        if (rightImg.complete) {
+          drawFinalImage();
+          previewImage.src = canvas.toDataURL();
+          actions.style.display = 'flex';
+        }
+      };
       leftImg.src = event.target.result;
     };
 
     readerRight.onload = function (event) {
       rightImg = new Image();
-      rightImg.onload = drawFinalImage;
+      rightImg.onload = () => {
+        if (leftImg.complete) {
+          drawFinalImage();
+          previewImage.src = canvas.toDataURL();
+          actions.style.display = 'flex';
+        }
+      };
       rightImg.src = event.target.result;
     };
 
@@ -78,7 +89,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   backBtn.addEventListener('click', () => {
-    previewImage.src = '';
+    previewImage.src = canvas.toDataURL(); // reset to last rendered image
     actions.style.display = 'none';
   });
 
@@ -93,9 +104,4 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     }, 'image/png');
   });
-
-  templateImg.onload = () => {
-    canvas.width = templateImg.width;
-    canvas.height = templateImg.height;
-  };
 });
