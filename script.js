@@ -6,7 +6,6 @@ window.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
   const confirmBtn = document.getElementById('confirmBtn');
-  const backBtn = document.getElementById('backBtn');
   const actions = document.getElementById('actions');
   const copiesInput = document.getElementById('copies');
 
@@ -26,33 +25,31 @@ window.addEventListener('DOMContentLoaded', () => {
   };
 
   function drawFinalImage() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
 
-  const placeholderSize = 560;
+    const placeholderSize = 560;
 
-  function drawImageCover(image, x, y) {
-    const scale = Math.max(
-      placeholderSize / image.width,
-      placeholderSize / image.height
-    );
-    const width = image.width * scale;
-    const height = image.height * scale;
-    const dx = x + (placeholderSize - width) / 2;
-    const dy = y + (placeholderSize - height) / 2;
-    ctx.drawImage(image, dx, dy, width, height);
+    function drawImageCover(image, x, y) {
+      const scale = Math.max(
+        placeholderSize / image.width,
+        placeholderSize / image.height
+      );
+      const width = image.width * scale;
+      const height = image.height * scale;
+      const dx = x + (placeholderSize - width) / 2;
+      const dy = y + (placeholderSize - height) / 2;
+      ctx.drawImage(image, dx, dy, width, height);
+    }
+
+    if (leftImg.complete && rightImg.complete) {
+      drawImageCover(leftImg, 98, 322);   // Left placeholder
+      drawImageCover(rightImg, 742, 322); // Right placeholder
+    }
+
+    previewImage.src = canvas.toDataURL();
+    actions.style.display = 'flex';
   }
-
-  if (leftImg.complete && rightImg.complete) {
-    drawImageCover(leftImg, 98, 322);   // Left placeholder
-    drawImageCover(rightImg, 742, 322); // Right placeholder
-  }
-
-  // Show the preview
-  previewImage.src = canvas.toDataURL();
-  actions.style.display = 'flex';
-}
-
 
   uploadForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -71,8 +68,6 @@ window.addEventListener('DOMContentLoaded', () => {
       leftImg.onload = () => {
         if (rightImg.complete) {
           drawFinalImage();
-          previewImage.src = canvas.toDataURL();
-          actions.style.display = 'flex';
         }
       };
       leftImg.src = event.target.result;
@@ -83,8 +78,6 @@ window.addEventListener('DOMContentLoaded', () => {
       rightImg.onload = () => {
         if (leftImg.complete) {
           drawFinalImage();
-          previewImage.src = canvas.toDataURL();
-          actions.style.display = 'flex';
         }
       };
       rightImg.src = event.target.result;
@@ -92,11 +85,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
     readerLeft.readAsDataURL(leftFile);
     readerRight.readAsDataURL(rightFile);
-  });
-
-  backBtn.addEventListener('click', () => {
-    previewImage.src = canvas.toDataURL(); // reset to last rendered image
-    actions.style.display = 'none';
   });
 
   confirmBtn.addEventListener('click', () => {
