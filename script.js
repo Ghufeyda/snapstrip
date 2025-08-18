@@ -26,27 +26,33 @@ window.addEventListener('DOMContentLoaded', () => {
   };
 
   function drawFinalImage() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
 
-    const maxSize = 280;
+  const placeholderSize = 560;
 
-    if (leftImg.complete && rightImg.complete) {
-      let scaleLeft = Math.min(maxSize / leftImg.width, maxSize / leftImg.height);
-      let drawWLeft = leftImg.width * scaleLeft;
-      let drawHLeft = leftImg.height * scaleLeft;
-      let dxLeft = 123 + (maxSize - drawWLeft) / 2;
-      let dyLeft = 403 + (maxSize - drawHLeft) / 2;
-      ctx.drawImage(leftImg, dxLeft, dyLeft, drawWLeft, drawHLeft);
-
-      let scaleRight = Math.min(maxSize / rightImg.width, maxSize / rightImg.height);
-      let drawWRight = rightImg.width * scaleRight;
-      let drawHRight = rightImg.height * scaleRight;
-      let dxRight = 928 + (maxSize - drawWRight) / 2;
-      let dyRight = 403 + (maxSize - drawHRight) / 2;
-      ctx.drawImage(rightImg, dxRight, dyRight, drawWRight, drawHRight);
-    }
+  function drawImageCover(image, x, y) {
+    const scale = Math.max(
+      placeholderSize / image.width,
+      placeholderSize / image.height
+    );
+    const width = image.width * scale;
+    const height = image.height * scale;
+    const dx = x + (placeholderSize - width) / 2;
+    const dy = y + (placeholderSize - height) / 2;
+    ctx.drawImage(image, dx, dy, width, height);
   }
+
+  if (leftImg.complete && rightImg.complete) {
+    drawImageCover(leftImg, 98, 322);   // Left placeholder
+    drawImageCover(rightImg, 742, 322); // Right placeholder
+  }
+
+  // Show the preview
+  previewImage.src = canvas.toDataURL();
+  actions.style.display = 'flex';
+}
+
 
   uploadForm.addEventListener('submit', (e) => {
     e.preventDefault();
