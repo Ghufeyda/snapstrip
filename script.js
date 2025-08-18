@@ -1,95 +1,99 @@
-const uploadForm = document.getElementById('uploadForm');
-const leftPhotoInput = document.getElementById('leftPhoto');
-const rightPhotoInput = document.getElementById('rightPhoto');
-const previewImage = document.getElementById('previewImage');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const confirmBtn = document.getElementById('confirmBtn');
-const backBtn = document.getElementById('backBtn');
-const actions = document.getElementById('actions');
-const copiesInput = document.getElementById('copies');
+window.addEventListener('DOMContentLoaded', () => {
+  // ⬇️ Move all your current code INSIDE this block
 
-uploadForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
+  const uploadForm = document.getElementById('uploadForm');
+  const leftPhotoInput = document.getElementById('leftPhoto');
+  const rightPhotoInput = document.getElementById('rightPhoto');
+  const previewImage = document.getElementById('previewImage');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const confirmBtn = document.getElementById('confirmBtn');
+  const backBtn = document.getElementById('backBtn');
+  const actions = document.getElementById('actions');
+  const copiesInput = document.getElementById('copies');
 
-  const leftFile = leftPhotoInput.files[0];
-  const rightFile = rightPhotoInput.files[0];
-  if (!leftFile || !rightFile) return alert('Please select both photos.');
+  uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-  const templateImg = new Image();
-  templateImg.crossOrigin = "anonymous";
-  templateImg.src = 'template.png'; // Template must be same-origin (i.e. GitHub Pages)
+    const leftFile = leftPhotoInput.files[0];
+    const rightFile = rightPhotoInput.files[0];
+    if (!leftFile || !rightFile) return alert('Please select both photos.');
 
-  templateImg.onload = () => {
-    // Set canvas to template size (1754x1240 for 5x3.5in @ 350dpi)
-    canvas.width = templateImg.width;
-    canvas.height = templateImg.height;
+    const templateImg = new Image();
+    templateImg.crossOrigin = "anonymous";
+    templateImg.src = 'template.png'; // Template must be same-origin (i.e. GitHub Pages)
 
-    // Draw template background
-    ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+    templateImg.onload = () => {
+      // Set canvas to template size (1754x1240 for 5x3.5in @ 350dpi)
+      canvas.width = templateImg.width;
+      canvas.height = templateImg.height;
 
-    const readerLeft = new FileReader();
-    const readerRight = new FileReader();
+      // Draw template background
+      ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
 
-    readerLeft.onload = () => {
-      const leftImg = new Image();
-      leftImg.onload = () => {
-        // Position: 0.35in (123px), 1.15in (403px)
-        ctx.drawImage(leftImg, 123, 403, 280, 280); // 2x2in ≈ 280x280px
+      const readerLeft = new FileReader();
+      const readerRight = new FileReader();
+
+      readerLeft.onload = () => {
+        const leftImg = new Image();
+        leftImg.onload = () => {
+          // Position: 0.35in (123px), 1.15in (403px)
+          ctx.drawImage(leftImg, 123, 403, 280, 280); // 2x2in ≈ 280x280px
+        };
+        leftImg.src = readerLeft.result;
       };
-      leftImg.src = readerLeft.result;
+
+      readerRight.onload = () => {
+        const rightImg = new Image();
+        rightImg.onload = () => {
+          // Position: 2.65in (928px), 1.15in (403px)
+          ctx.drawImage(rightImg, 928, 403, 280, 280);
+          // Show preview once both images are loaded
+          previewImage.src = canvas.toDataURL();
+          actions.style.display = 'block';
+        };
+        rightImg.src = readerRight.result;
+      };
+
+      readerLeft.readAsDataURL(leftFile);
+      readerRight.readAsDataURL(rightFile);
     };
 
-    readerRight.onload = () => {
-      const rightImg = new Image();
-      rightImg.onload = () => {
-        // Position: 2.65in (928px), 1.15in (403px)
-        ctx.drawImage(rightImg, 928, 403, 280, 280);
-        // Show preview once both images are loaded
-        previewImage.src = canvas.toDataURL();
-        actions.style.display = 'block';
-      };
-      rightImg.src = readerRight.result;
+    templateImg.onerror = () => {
+      alert("Error loading template image. Make sure it's hosted on the same server.");
     };
+  });
 
-    readerLeft.readAsDataURL(leftFile);
-    readerRight.readAsDataURL(rightFile);
-  };
+  confirmBtn.addEventListener('click', () => {
+    const numCopies = parseInt(copiesInput.value, 10);
+    if (isNaN(numCopies) || numCopies < 1 || numCopies > 5) {
+      return alert('Please enter a valid number of copies (1–5).');
+    }
 
-  templateImg.onerror = () => {
-    alert("Error loading template image. Make sure it's hosted on the same server.");
-  };
-});
+    const filename = `snapstrip_${Date.now()}.jpg`;
 
-confirmBtn.addEventListener('click', () => {
-  const numCopies = parseInt(copiesInput.value, 10);
-  if (isNaN(numCopies) || numCopies < 1 || numCopies > 5) {
-    return alert('Please enter a valid number of copies (1–5).');
-  }
+    try {
+      canvas.toBlob((blob) => {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = URL.createObjectURL(blob);
+        link.click();
 
-  const filename = `snapstrip_${Date.now()}.jpg`;
+        alert(`${numCopies} copy/copies will be printed.`);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        actions.style.display = 'none';
+        uploadForm.reset();
+      }, 'image/jpeg');
+    } catch (err) {
+      alert('Error: Unable to generate print file. Make sure image sources are not cross-origin.');
+      console.error(err);
+    }
+  });
 
-  try {
-    canvas.toBlob((blob) => {
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = URL.createObjectURL(blob);
-      link.click();
-
-      alert(`${numCopies} copy/copies will be printed.`);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      actions.style.display = 'none';
-      uploadForm.reset();
-    }, 'image/jpeg');
-  } catch (err) {
-    alert('Error: Unable to generate print file. Make sure image sources are not cross-origin.');
-    console.error(err);
-  }
-});
-
-backBtn.addEventListener('click', () => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  actions.style.display = 'none';
-  previewImage.src = '';
-  uploadForm.reset();
+  backBtn.addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    actions.style.display = 'none';
+    previewImage.src = '';
+    uploadForm.reset();
+  });
 });
