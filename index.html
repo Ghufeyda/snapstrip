@@ -2,34 +2,41 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SnapStrip Print Station</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SnapStrip Print</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>SnapStrip Print Station</h1>
+  <div class="container">
+    <h1>SnapStrip</h1>
+    <p class="tagline">Upload your 2 photos and get a beautiful printout in seconds!</p>
 
-  <form id="uploadForm">
-    <label for="leftPhoto">Left Photo (2x2 in):</label>
-    <input type="file" id="leftPhoto" accept="image/*" required>
+    <form id="uploadForm">
+      <div class="input-group">
+        <label for="leftPhoto">Left Photo</label>
+        <input type="file" id="leftPhoto" accept="image/*" required />
+      </div>
 
-    <label for="rightPhoto">Right Photo (2x2 in):</label>
-    <input type="file" id="rightPhoto" accept="image/*" required>
+      <div class="input-group">
+        <label for="rightPhoto">Right Photo</label>
+        <input type="file" id="rightPhoto" accept="image/*" required />
+      </div>
 
-    <button type="submit">Generate Preview</button>
-  </form>
+      <button type="submit" class="upload-btn">Preview</button>
+    </form>
 
-  <div id="preview">
-    <img id="previewImage" src="template.png" alt="Preview" />
+    <div class="preview-section">
+      <img id="previewImage" alt="Preview will appear here..." />
+    </div>
+
+    <div id="actions" class="actions">
+      <label for="copies">Number of Copies (max 5)</label>
+      <input type="number" id="copies" value="1" min="1" max="5" />
+      <button id="confirmBtn" class="confirm-btn">Print</button>
+    </div>
+
+    <canvas id="canvas" style="display: none;"></canvas>
   </div>
-
-  <div id="actions">
-    <label for="copies">Number of copies (max 5):</label>
-    <input type="number" id="copies" min="1" max="5" value="1" />
-    <button id="confirmBtn">Confirm & Print</button>
-  </div>
-
-  <canvas id="canvas" style="display: none;"></canvas>
 
   <script src="script.js"></script>
 </body>
