@@ -1,6 +1,4 @@
 window.addEventListener('DOMContentLoaded', () => {
-  // ⬇️ Move all your current code INSIDE this block
-
   const uploadForm = document.getElementById('uploadForm');
   const leftPhotoInput = document.getElementById('leftPhoto');
   const rightPhotoInput = document.getElementById('rightPhoto');
@@ -12,88 +10,92 @@ window.addEventListener('DOMContentLoaded', () => {
   const actions = document.getElementById('actions');
   const copiesInput = document.getElementById('copies');
 
-  uploadForm.addEventListener('submit', async (e) => {
+  const templateImg = new Image();
+  templateImg.crossOrigin = "anonymous";
+  templateImg.src = 'template.png';
+
+  let leftImg = new Image();
+  let rightImg = new Image();
+
+  function drawFinalImage() {
+    // Draw template
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+
+    // Draw left image in 2x2 inch area (280x280px)
+    const maxSize = 280;
+
+    if (leftImg.complete && rightImg.complete) {
+      // Scale and center left image
+      let scaleLeft = Math.min(maxSize / leftImg.width, maxSize / leftImg.height);
+      let drawWLeft = leftImg.width * scaleLeft;
+      let drawHLeft = leftImg.height * scaleLeft;
+      let dxLeft = 123 + (maxSize - drawWLeft) / 2;
+      let dyLeft = 403 + (maxSize - drawHLeft) / 2;
+      ctx.drawImage(leftImg, dxLeft, dyLeft, drawWLeft, drawHLeft);
+
+      // Scale and center right image
+      let scaleRight = Math.min(maxSize / rightImg.width, maxSize / rightImg.height);
+      let drawWRight = rightImg.width * scaleRight;
+      let drawHRight = rightImg.height * scaleRight;
+      let dxRight = 928 + (maxSize - drawWRight) / 2;
+      let dyRight = 403 + (maxSize - drawHRight) / 2;
+      ctx.drawImage(rightImg, dxRight, dyRight, drawWRight, drawHRight);
+
+      // Show preview
+      previewImage.src = canvas.toDataURL();
+      actions.style.display = 'flex';
+    }
+  }
+
+  uploadForm.addEventListener('submit', (e) => {
     e.preventDefault();
+    actions.style.display = 'none';
 
     const leftFile = leftPhotoInput.files[0];
     const rightFile = rightPhotoInput.files[0];
-    if (!leftFile || !rightFile) return alert('Please select both photos.');
+    const copies = Math.min(5, parseInt(copiesInput.value) || 1);
 
-    const templateImg = new Image();
-    templateImg.crossOrigin = "anonymous";
-    templateImg.src = 'template.png'; // Template must be same-origin (i.e. GitHub Pages)
+    if (!leftFile || !rightFile) return;
 
-    templateImg.onload = () => {
-      // Set canvas to template size (1754x1240 for 5x3.5in @ 350dpi)
-      canvas.width = templateImg.width;
-      canvas.height = templateImg.height;
+    const readerLeft = new FileReader();
+    const readerRight = new FileReader();
 
-      // Draw template background
-      ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
-
-      const readerLeft = new FileReader();
-      const readerRight = new FileReader();
-
-      readerLeft.onload = () => {
-        const leftImg = new Image();
-        leftImg.onload = () => {
-          // Position: 0.35in (123px), 1.15in (403px)
-          ctx.drawImage(leftImg, 123, 403, 280, 280); // 2x2in ≈ 280x280px
-        };
-        leftImg.src = readerLeft.result;
-      };
-
-      readerRight.onload = () => {
-        const rightImg = new Image();
-        rightImg.onload = () => {
-          // Position: 2.65in (928px), 1.15in (403px)
-          ctx.drawImage(rightImg, 928, 403, 280, 280);
-          // Show preview once both images are loaded
-          previewImage.src = canvas.toDataURL();
-          actions.style.display = 'block';
-        };
-        rightImg.src = readerRight.result;
-      };
-
-      readerLeft.readAsDataURL(leftFile);
-      readerRight.readAsDataURL(rightFile);
+    readerLeft.onload = function (event) {
+      leftImg = new Image();
+      leftImg.onload = drawFinalImage;
+      leftImg.src = event.target.result;
     };
 
-    templateImg.onerror = () => {
-      alert("Error loading template image. Make sure it's hosted on the same server.");
+    readerRight.onload = function (event) {
+      rightImg = new Image();
+      rightImg.onload = drawFinalImage;
+      rightImg.src = event.target.result;
     };
-  });
 
-  confirmBtn.addEventListener('click', () => {
-    const numCopies = parseInt(copiesInput.value, 10);
-    if (isNaN(numCopies) || numCopies < 1 || numCopies > 5) {
-      return alert('Please enter a valid number of copies (1–5).');
-    }
-
-    const filename = `snapstrip_${Date.now()}.jpg`;
-
-    try {
-      canvas.toBlob((blob) => {
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = URL.createObjectURL(blob);
-        link.click();
-
-        alert(`${numCopies} copy/copies will be printed.`);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        actions.style.display = 'none';
-        uploadForm.reset();
-      }, 'image/jpeg');
-    } catch (err) {
-      alert('Error: Unable to generate print file. Make sure image sources are not cross-origin.');
-      console.error(err);
-    }
+    readerLeft.readAsDataURL(leftFile);
+    readerRight.readAsDataURL(rightFile);
   });
 
   backBtn.addEventListener('click', () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    actions.style.display = 'none';
     previewImage.src = '';
-    uploadForm.reset();
+    actions.style.display = 'none';
   });
+
+  confirmBtn.addEventListener('click', () => {
+    const copies = Math.min(5, parseInt(copiesInput.value) || 1);
+    canvas.toBlob(blob => {
+      for (let i = 0; i < copies; i++) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `snapstrip-print-${Date.now()}-${i + 1}.png`;
+        a.click();
+      }
+    }, 'image/png');
+  });
+
+  templateImg.onload = () => {
+    canvas.width = templateImg.width;
+    canvas.height = templateImg.height;
+  };
 });
