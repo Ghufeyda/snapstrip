@@ -1,101 +1,102 @@
-window.addEventListener('DOMContentLoaded', () => {
-  const uploadForm = document.getElementById('uploadForm');
-  const leftPhotoInput = document.getElementById('leftPhoto');
-  const rightPhotoInput = document.getElementById('rightPhoto');
-  const previewImage = document.getElementById('previewImage');
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
-  const confirmBtn = document.getElementById('confirmBtn');
-  const actions = document.getElementById('actions');
-  const copiesInput = document.getElementById('copies');
+const uploadForm = document.getElementById('uploadForm');
+const leftPhotoInput = document.getElementById('leftPhoto');
+const rightPhotoInput = document.getElementById('rightPhoto');
+const previewImage = document.getElementById('previewImage');
+const actions = document.getElementById('actions');
+const copiesInput = document.getElementById('copies');
+const confirmBtn = document.getElementById('confirmBtn');
 
-  const templateImg = new Image();
-  templateImg.crossOrigin = "anonymous";
-  templateImg.src = 'template.png';
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
 
-  let leftImg = new Image();
-  let rightImg = new Image();
+canvas.width = 980;
+canvas.height = 1400;
 
-  // Draw the default template on page load
-  templateImg.onload = () => {
-    canvas.width = templateImg.width;
-    canvas.height = templateImg.height;
-    ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
-    previewImage.src = canvas.toDataURL(); // show template in preview
+const PLACEHOLDER_SIZE = 560;
+const LEFT_X = 98;   // 0.35in x 280ppi
+const LEFT_Y = 322;  // 1.15in x 280ppi
+const RIGHT_X = 742; // 2.65in x 280ppi
+const RIGHT_Y = 322; // 1.15in x 280ppi
+
+const templateImg = new Image();
+templateImg.src = 'template.png';
+
+let leftImg = null;
+let rightImg = null;
+
+// Load and store images
+function loadImage(file, callback) {
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const img = new Image();
+    img.onload = () => callback(img);
+    img.src = e.target.result;
   };
+  reader.readAsDataURL(file);
+}
 
-  function drawFinalImage() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+// Cover and center image logic
+function drawImageCover(image, x, y) {
+  const scale = Math.max(
+    PLACEHOLDER_SIZE / image.width,
+    PLACEHOLDER_SIZE / image.height
+  );
+  const width = image.width * scale;
+  const height = image.height * scale;
+  const offsetX = x + (PLACEHOLDER_SIZE - width) / 2;
+  const offsetY = y + (PLACEHOLDER_SIZE - height) / 2;
+  ctx.drawImage(image, offsetX, offsetY, width, height);
+}
 
-    const placeholderSize = 560;
+function drawFinalImage() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
 
-    function drawImageCover(image, x, y) {
-      const scale = Math.max(
-        placeholderSize / image.width,
-        placeholderSize / image.height
-      );
-      const width = image.width * scale;
-      const height = image.height * scale;
-      const dx = x + (placeholderSize - width) / 2;
-      const dy = y + (placeholderSize - height) / 2;
-      ctx.drawImage(image, dx, dy, width, height);
-    }
+  if (leftImg) drawImageCover(leftImg, LEFT_X, LEFT_Y);
+  if (rightImg) drawImageCover(rightImg, RIGHT_X, RIGHT_Y);
 
-    if (leftImg.complete && rightImg.complete) {
-      drawImageCover(leftImg, 98, 322);   // Left placeholder
-      drawImageCover(rightImg, 742, 322); // Right placeholder
-    }
+  // Show preview
+  previewImage.src = canvas.toDataURL();
+  actions.style.display = 'flex';
+}
 
-    previewImage.src = canvas.toDataURL();
-    actions.style.display = 'flex';
+uploadForm.addEventListener('submit', function (e) {
+  e.preventDefault();
+  const leftFile = leftPhotoInput.files[0];
+  const rightFile = rightPhotoInput.files[0];
+
+  if (!leftFile || !rightFile) return alert("Please upload both photos.");
+
+  loadImage(leftFile, (img) => {
+    leftImg = img;
+    if (rightImg) drawFinalImage();
+  });
+
+  loadImage(rightFile, (img) => {
+    rightImg = img;
+    if (leftImg) drawFinalImage();
+  });
+});
+
+confirmBtn.addEventListener('click', () => {
+  const copies = parseInt(copiesInput.value);
+  if (isNaN(copies) || copies < 1 || copies > 5) {
+    alert("Please select 1 to 5 copies.");
+    return;
   }
 
-  uploadForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    actions.style.display = 'none';
+  canvas.toBlob((blob) => {
+    const formData = new FormData();
+    formData.append("image", blob, "snapstrip.png");
+    formData.append("copies", copies);
 
-    const leftFile = leftPhotoInput.files[0];
-    const rightFile = rightPhotoInput.files[0];
-
-    if (!leftFile || !rightFile) return;
-
-    const readerLeft = new FileReader();
-    const readerRight = new FileReader();
-
-    readerLeft.onload = function (event) {
-      leftImg = new Image();
-      leftImg.onload = () => {
-        if (rightImg.complete) {
-          drawFinalImage();
-        }
-      };
-      leftImg.src = event.target.result;
-    };
-
-    readerRight.onload = function (event) {
-      rightImg = new Image();
-      rightImg.onload = () => {
-        if (leftImg.complete) {
-          drawFinalImage();
-        }
-      };
-      rightImg.src = event.target.result;
-    };
-
-    readerLeft.readAsDataURL(leftFile);
-    readerRight.readAsDataURL(rightFile);
-  });
-
-  confirmBtn.addEventListener('click', () => {
-    const copies = Math.min(5, parseInt(copiesInput.value) || 1);
-    canvas.toBlob(blob => {
-      for (let i = 0; i < copies; i++) {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `snapstrip-print-${Date.now()}-${i + 1}.png`;
-        a.click();
-      }
-    }, 'image/png');
-  });
+    fetch("/print", {
+      method: "POST",
+      body: formData
+    }).then(() => {
+      alert("Sent to print queue! You may collect your photo shortly.");
+    }).catch(() => {
+      alert("Error sending to printer.");
+    });
+  }, "image/png");
 });
