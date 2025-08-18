@@ -63,3 +63,10 @@ function drawImageFit(ctx, image, centerX, centerY, boxW, boxH) {
   const y = centerY - height / 2;
   ctx.drawImage(image, x, y, width, height);
 }
+
+// Draw template-only preview on initial load
+templateImg.onload = () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+  previewImage.src = canvas.toDataURL();
+};
