@@ -20,13 +20,13 @@ templateImg.src = templateSrc;
 
 let uploadedImages = [null, null, null];
 
-// Draw template only (initial view)
+// Draw the template first
 function drawInitialTemplate() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
 }
 
-// Full preview: template + uploaded photos
+// Draw all 3 photos over the template
 function drawPreview() {
   drawInitialTemplate();
 
@@ -50,10 +50,10 @@ function drawPreview() {
   });
 }
 
-// Load template and draw initial state
+// Load template once on page load
 templateImg.onload = drawInitialTemplate;
 
-// Handle uploads
+// Handle uploads for each photo input
 photoInputs.forEach((input, index) => {
   input.addEventListener('change', (event) => {
     const file = event.target.files[0];
@@ -72,38 +72,40 @@ photoInputs.forEach((input, index) => {
   });
 });
 
-// Print logic
+// Confirm & Print
 document.getElementById('confirmPrint').addEventListener('click', () => {
   const copies = parseInt(document.getElementById('copies').value, 10);
   if (isNaN(copies) || copies < 1 || copies > 5) {
-    alert("Please select between 1 and 5 copies.");
+    alert("Please choose between 1 and 5 copies.");
     return;
   }
 
   canvas.toBlob((blob) => {
-    if (!blob) {
-      alert("Error generating image. Try again.");
-      return;
-    }
-
-    const url = URL.createObjectURL(blob);
-    for (let i = 0; i < copies; i++) {
-      const win = window.open(url);
-      win.onload = () => win.print();
-    }
-  });
+    const reader = new FileReader();
+    reader.onloadend = function () {
+      fetch('YOUR_SCRIPT_URL_HERE', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `photo=${encodeURIComponent(reader.result)}&copies=${copies}`
+      })
+        .then(res => res.text())
+        .then(msg => alert('Sent to print queue.'))
+        .catch(err => alert('Print failed: ' + err));
+    };
+    reader.readAsDataURL(blob);
+  }, 'image/jpeg');
 });
 
-// Download logic
+// Download
 document.getElementById('downloadImage').addEventListener('click', () => {
   canvas.toBlob((blob) => {
     if (!blob) {
-      alert("Error creating image for download.");
+      alert("Error preparing download.");
       return;
     }
 
     const link = document.createElement('a');
-    link.download = 'your-photo-collage.png';
+    link.download = 'photo-collage.jpg';
     link.href = URL.createObjectURL(blob);
     link.click();
   });
