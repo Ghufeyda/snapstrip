@@ -2,41 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SnapStrip Print</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
+  <main class="container">
     <h1>SnapStrip</h1>
-    <p class="tagline">Upload your 2 photos and get a beautiful printout in seconds!</p>
 
-    <form id="uploadForm">
-      <div class="input-group">
-        <label for="leftPhoto">Left Photo</label>
-        <input type="file" id="leftPhoto" accept="image/*" required />
-      </div>
+    <p>Upload your 3 photos to print your custom strip!</p>
 
-      <div class="input-group">
-        <label for="rightPhoto">Right Photo</label>
-        <input type="file" id="rightPhoto" accept="image/*" required />
-      </div>
+    <label for="photo1">Photo 1:</label>
+    <input type="file" class="photo-upload" id="photo1" accept="image/*" />
 
-      <button type="submit" class="upload-btn">Preview</button>
-    </form>
+    <label for="photo2">Photo 2:</label>
+    <input type="file" class="photo-upload" id="photo2" accept="image/*" />
 
-    <div class="preview-section">
-      <img id="previewImage" alt="Preview will appear here..." />
+    <label for="photo3">Photo 3:</label>
+    <input type="file" class="photo-upload" id="photo3" accept="image/*" />
+
+    <div class="preview-container">
+      <canvas id="previewCanvas" width="1500" height="1050"></canvas>
     </div>
 
-    <div id="actions" class="actions">
-      <label for="copies">Number of Copies (max 5)</label>
-      <input type="number" id="copies" value="1" min="1" max="5" />
-      <button id="confirmBtn" class="confirm-btn">Print</button>
-    </div>
+    <label for="copies">Number of copies:</label>
+    <select id="copies">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+    </select>
 
-    <canvas id="canvas" style="display: none;"></canvas>
-  </div>
+    <button id="confirmPrint">Confirm & Print</button>
+  </main>
 
   <script src="script.js"></script>
 </body>
