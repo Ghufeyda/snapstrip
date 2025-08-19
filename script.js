@@ -1,92 +1,101 @@
-window.addEventListener('DOMContentLoaded', () => {
-  const uploadForm = document.getElementById('uploadForm');
-  const leftInput = document.getElementById('leftPhoto');
-  const rightInput = document.getElementById('rightPhoto');
-  const previewImage = document.getElementById('previewImage');
-  const actions = document.getElementById('actions');
-  const copiesInput = document.getElementById('copies');
-  const confirmBtn = document.getElementById('confirmBtn');
+const canvas = document.getElementById("previewCanvas");
+const ctx = canvas.getContext("2d");
 
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
-  canvas.width = 1500;
-  canvas.height = 1050;
+const template = new Image();
+template.src = "template.png";
 
-  const templateImg = new Image();
-  templateImg.src = 'template.png';
-  templateImg.onload = () => {
-    ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
-    previewImage.src = canvas.toDataURL();
-  };
+// Placeholder coordinates (bottom-left of each 450x600 px box)
+const placeholders = [
+  { x: 54.9, y: 345 },
+  { x: 525.1, y: 345 },
+  { x: 995.1, y: 345 }
+];
 
-  const PLACE_SIZE = 600;
-  const PLACE_LEFT = { x: 105, y: 345 };
-  const PLACE_RIGHT = { x: 795, y: 345 };
+const placeholderSize = { width: 450, height: 600 };
 
-  let leftImg = null;
-  let rightImg = null;
+// Store uploaded images
+let uploadedImages = [null, null, null];
 
-  function drawCentered(image, bottomLeft) {
-    const centerX = bottomLeft.x + PLACE_SIZE / 2;
-    const centerY = bottomLeft.y + PLACE_SIZE / 2;
-
-    const scale = Math.min(PLACE_SIZE / image.width, PLACE_SIZE / image.height);
-    const drawW = image.width * scale;
-    const drawH = image.height * scale;
-
-    const dx = centerX - drawW / 2;
-    const dy = centerY - drawH / 2;
-
-    ctx.drawImage(image, dx, dy, drawW, drawH);
+// Draw the template and any uploaded images
+function drawPreview() {
+  if (!template.complete) {
+    template.onload = drawPreview;
+    return;
   }
 
-  uploadForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!leftInput.files[0] || !rightInput.files[0]) {
-      return alert('Please upload both photos.');
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw template background
+  ctx.drawImage(template, 0, 0, canvas.width, canvas.height);
+
+  // Draw uploaded images in each placeholder
+  uploadedImages.forEach((img, index) => {
+    if (img) {
+      drawImageToPlaceholder(img, placeholders[index]);
     }
-
-    leftImg = await loadImage(leftInput.files[0]);
-    rightImg = await loadImage(rightInput.files[0]);
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
-
-    drawCentered(leftImg, PLACE_LEFT);
-    drawCentered(rightImg, PLACE_RIGHT);
-
-    previewImage.src = canvas.toDataURL();
-    actions.style.display = 'flex';
   });
+}
 
-  confirmBtn.addEventListener('click', () => {
-    const copies = parseInt(copiesInput.value, 10);
-    if (isNaN(copies) || copies < 1 || copies > 5) {
-      return alert('Select between 1 to 5 copies.');
-    }
+// Draw image centered in placeholder and scaled to fit
+function drawImageToPlaceholder(image, placeholder) {
+  const centerX = placeholder.x + placeholderSize.width / 2;
+  const centerY = placeholder.y + placeholderSize.height / 2;
 
-    const filename = `snapstrip_${Date.now()}.jpg`;
-    canvas.toBlob((blob) => {
-      for (let i = 0; i < copies; i++) {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `${filename}_${i+1}.jpg`;
-        a.click();
-      }
-      alert(`${copies} copy/copies created.`);
-    }, 'image/jpeg');
-  });
+  const scale = Math.min(
+    placeholderSize.width / image.width,
+    placeholderSize.height / image.height
+  );
 
-  // Helper: load image from file
-  function loadImage(file) {
-    return new Promise((res) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => res(img);
-        img.src = e.target.result;
+  const drawWidth = image.width * scale;
+  const drawHeight = image.height * scale;
+
+  const drawX = centerX - drawWidth / 2;
+  const drawY = centerY - drawHeight / 2;
+
+  ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+}
+
+// Handle uploads
+document.querySelectorAll(".photo-upload").forEach((input, index) => {
+  input.addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const img = new Image();
+      img.onload = () => {
+        uploadedImages[index] = img;
+        drawPreview();
       };
-      reader.readAsDataURL(file);
-    });
-  }
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 });
+
+// Confirm and print
+document.getElementById("confirmPrint").addEventListener("click", () => {
+  const copies = parseInt(document.getElementById("copies").value);
+  if (isNaN(copies) || copies < 1 || copies > 5) {
+    alert("Please select 1 to 5 copies.");
+    return;
+  }
+
+  canvas.toBlob((blob) => {
+    const formData = new FormData();
+    formData.append("image", blob, "collage.jpg");
+    formData.append("copies", copies);
+
+    fetch("/print", {
+      method: "POST",
+      body: formData
+    })
+      .then(() => alert("Print queued successfully!"))
+      .catch(() => alert("Error sending print job."));
+  }, "image/jpeg");
+});
+
+// Initial load with only template shown
+template.onload = () => drawPreview();
