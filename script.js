@@ -96,18 +96,15 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
 
 // Download logic
 document.getElementById('downloadImage').addEventListener('click', () => {
-  const dataURL = canvas.toDataURL('image/png');
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      alert("Error creating image for download.");
+      return;
+    }
 
-  const link = document.createElement('a');
-  link.href = dataURL;
-  link.download = 'wedding-photo.png';
-
-  // Try to trigger download, fallback to open for mobile
-  if (navigator.userAgent.includes("Macintosh") || navigator.userAgent.includes("Windows")) {
+    const link = document.createElement('a');
+    link.download = 'your-photo-collage.png';
+    link.href = URL.createObjectURL(blob);
     link.click();
-  } else {
-    // Open in new tab for mobile save
-    const newTab = window.open();
-    newTab.document.write(`<img src="${dataURL}" style="width:100%;height:auto;">`);
-  }
+  });
 });
