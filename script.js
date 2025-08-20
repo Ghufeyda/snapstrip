@@ -1,112 +1,146 @@
+// ====== Config ======
+const TEMPLATE_SRC = 'template.png';          // must be same-origin to avoid CORS-tainted canvas
+const CANVAS_W = 1500, CANVAS_H = 1050;
+const PLACE_W = 450, PLACE_H = 600;
+const PLACEHOLDERS = [
+  { x: 54.9,  y: 345   }, // Photo 1 bottom-left
+  { x: 525.1, y: 345   }, // Photo 2 bottom-left
+  { x: 995.1, y: 345   }  // Photo 3 bottom-left
+];
+// Your Google Apps Script Web App URL (Deploy > Web app > "Anyone")
+const SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzjYR0hiyu7aU9DhE9Nbd1ITwNrPdKDieJW4ZT2Kqgvj8hJdaeublZLmvhUxAxOZBE/exec';
+
+// ====== DOM ======
 const canvas = document.getElementById('previewCanvas');
 const ctx = canvas.getContext('2d');
-const photoInputs = [
+canvas.width = CANVAS_W; canvas.height = CANVAS_H;
+
+const inputs = [
   document.getElementById('photo1'),
   document.getElementById('photo2'),
-  document.getElementById('photo3')
+  document.getElementById('photo3'),
 ];
+const copiesEl = document.getElementById('copies');
+const btnPrint = document.getElementById('confirmPrint');
+const btnDownload = document.getElementById('downloadImage');
 
-const placeholders = [
-  { x: 54.9, y: 345 },
-  { x: 525.1, y: 345 },
-  { x: 995.1, y: 345 }
-];
+// ====== State ======
+const uploadedImages = [null, null, null];
+const templateImg = new Image();
+templateImg.src = TEMPLATE_SRC;
 
-const placeholderSize = { width: 450, height: 600 };
-const templateSrc = 'template.png';
-
-let templateImg = new Image();
-templateImg.src = templateSrc;
-
-let uploadedImages = [null, null, null];
-
-// Draw the template first
-function drawInitialTemplate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+// ====== Helpers ======
+function drawTemplateOnly() {
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  ctx.drawImage(templateImg, 0, 0, CANVAS_W, CANVAS_H);
 }
 
-// Draw all 3 photos over the template
-function drawPreview() {
-  drawInitialTemplate();
-
-  uploadedImages.forEach((img, index) => {
+function drawAll() {
+  drawTemplateOnly();
+  uploadedImages.forEach((img, i) => {
     if (!img) return;
+    const { x, y } = PLACEHOLDERS[i];
+    const cx = x + PLACE_W / 2;
+    const cy = y + PLACE_H / 2;
 
-    const { x, y } = placeholders[index];
-    const { width, height } = placeholderSize;
+    // Scale to fit within 450x600 while preserving aspect ratio
+    const s = Math.min(PLACE_W / img.width, PLACE_H / img.height);
+    const w = img.width * s;
+    const h = img.height * s;
 
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
-
-    const scale = Math.min(width / img.width, height / img.height);
-    const renderWidth = img.width * scale;
-    const renderHeight = img.height * scale;
-
-    const renderX = centerX - renderWidth / 2;
-    const renderY = centerY - renderHeight / 2;
-
-    ctx.drawImage(img, renderX, renderY, renderWidth, renderHeight);
+    const dx = cx - w / 2;
+    const dy = cy - h / 2;
+    ctx.drawImage(img, dx, dy, w, h);
   });
 }
 
-// Load template once on page load
-templateImg.onload = drawInitialTemplate;
-
-// Handle uploads for each photo input
-photoInputs.forEach((input, index) => {
-  input.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function (e) {
+function readAsImage(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = e => {
       const img = new Image();
-      img.onload = function () {
-        uploadedImages[index] = img;
-        drawPreview();
-      };
+      img.onload = () => resolve(img);
+      img.onerror = reject;
       img.src = e.target.result;
     };
-    reader.readAsDataURL(file);
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
+}
+
+// ====== Events ======
+templateImg.onload = drawTemplateOnly;
+
+inputs.forEach((input, idx) => {
+  input.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const img = await readAsImage(file);
+      uploadedImages[idx] = img;
+      drawAll();
+    } catch {
+      alert('Could not load that image. Please try a different file.');
+    }
   });
 });
 
-// Confirm & Print
-document.getElementById('confirmPrint').addEventListener('click', () => {
-  const copies = parseInt(document.getElementById('copies').value, 10);
+// Upload merged JPEG to Google Apps Script
+btnPrint.addEventListener('click', () => {
+  const copies = parseInt(copiesEl.value, 10);
   if (isNaN(copies) || copies < 1 || copies > 5) {
-    alert("Please choose between 1 and 5 copies.");
+    alert('Please choose between 1 and 5 copies.');
     return;
   }
 
-  canvas.toBlob((blob) => {
-    const reader = new FileReader();
-    reader.onloadend = function () {
-      fetch('YOUR_SCRIPT_URL_HERE', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `photo=${encodeURIComponent(reader.result)}&copies=${copies}`
-      })
-        .then(res => res.text())
-        .then(msg => alert('Sent to print queue.'))
-        .catch(err => alert('Print failed: ' + err));
-    };
-    reader.readAsDataURL(blob);
-  }, 'image/jpeg');
-});
+  // Ensure template is drawn even if no photos provided
+  drawAll();
 
-// Download
-document.getElementById('downloadImage').addEventListener('click', () => {
   canvas.toBlob((blob) => {
     if (!blob) {
-      alert("Error preparing download.");
+      alert('Failed to prepare image.');
       return;
     }
+    const fr = new FileReader();
+    fr.onloadend = () => {
+      // fr.result is a dataURL; send as x-www-form-urlencoded to Apps Script
+      const body = new URLSearchParams({
+        photo: fr.result,                       // dataURL (base64) of merged JPEG
+        copies: String(copies),                 // let backend include in filename if desired
+        ts: String(Date.now())                  // simple de-dupe
+      }).toString();
 
-    const link = document.createElement('a');
-    link.download = 'photo-collage.jpg';
-    link.href = URL.createObjectURL(blob);
-    link.click();
-  });
+      fetch(SCRIPT_WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body
+      })
+      .then(res => res.text())
+      .then(() => {
+        alert('Uploaded to print queue! You can collect your print shortly.');
+      })
+      .catch(err => {
+        alert('Upload failed. Please try again.');
+        console.error(err);
+      });
+    };
+    fr.readAsDataURL(blob);
+  }, 'image/jpeg', 0.92); // quality ~92%
+});
+
+// Single download (for guest keepsake)
+btnDownload.addEventListener('click', () => {
+  drawAll();
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      alert('Failed to prepare download.');
+      return;
+    }
+    const a = document.createElement('a');
+    a.download = 'snapstrip.jpg';
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    // Revoke later
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }, 'image/jpeg', 0.92);
 });
