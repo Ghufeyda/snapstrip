@@ -123,7 +123,6 @@ btnPrint.addEventListener('click', () => {
   fr.readAsDataURL(blob);
 }, 'image/jpeg', 0.92);
 
-
 // Single download (for guest keepsake)
 btnDownload.addEventListener('click', () => {
   drawAll();
