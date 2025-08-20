@@ -97,36 +97,32 @@ btnPrint.addEventListener('click', () => {
   drawAll();
 
   canvas.toBlob((blob) => {
-    if (!blob) {
-      alert('Failed to prepare image.');
-      return;
-    }
-    const fr = new FileReader();
-    fr.onloadend = () => {
-      // fr.result is a dataURL; send as x-www-form-urlencoded to Apps Script
-      const body = new URLSearchParams({
-        photo: fr.result,                       // dataURL (base64) of merged JPEG
-        copies: String(copies),                 // let backend include in filename if desired
-        ts: String(Date.now())                  // simple de-dupe
-      }).toString();
+  if (!blob) {
+    alert('Failed to prepare image.');
+    return;
+  }
 
-      fetch(SCRIPT_WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body
-      })
-      .then(res => res.text())
-      .then(() => {
-        alert('Uploaded to print queue! You can collect your print shortly.');
-      })
+  const copies = parseInt(document.getElementById('copies').value, 10) || 1;
+
+  const fr = new FileReader();
+  fr.onloadend = () => {
+    // Send base64 as a normal form field (text) via multipart/form-data
+    const fd = new FormData();
+    fd.append('photo', fr.result);    // dataURL (base64)
+    fd.append('copies', String(copies));
+    fd.append('ts', String(Date.now()));
+
+    fetch(SCRIPT_WEB_APP_URL, { method: 'POST', body: fd })
+      .then(r => r.text())
+      .then(() => alert('Uploaded to print queue!'))
       .catch(err => {
-        alert('Upload failed. Please try again.');
         console.error(err);
+        alert('Upload failed.');
       });
-    };
-    fr.readAsDataURL(blob);
-  }, 'image/jpeg', 0.92); // quality ~92%
-});
+  };
+  fr.readAsDataURL(blob);
+}, 'image/jpeg', 0.92);
+
 
 // Single download (for guest keepsake)
 btnDownload.addEventListener('click', () => {
