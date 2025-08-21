@@ -15,7 +15,7 @@ const CONFIG = {
   templateSrc: 'template.png',
   uploadLimit: 3,
   maxCopies: 5,
-  uploadURL: 'https://script.google.com/macros/s/AKfycbzjYR0hiyu7aU9DhE9Nbd1ITwNrPdKDieJW4ZT2Kqgvj8hJdaeublZLmvhUxAxOZBE/exec'
+  uploadURL: 'https://script.google.com/a/macros/utsprinting.com.sg/s/AKfycbzjYR0hiyu7aU9DhE9Nbd1ITwNrPdKDieJW4ZT2Kqgvj8hJdaeublZLmvhUxAxOZBE/exec'
 };
 
 // ==========================
