@@ -95,3 +95,22 @@ canvas {
   color: #777;
   margin-top: 0.5rem;
 }
+
+.loading-container {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.loading-bar {
+  width: 0%;
+  height: 8px;
+  background: linear-gradient(90deg, #0071e3, #00c6ff);
+  border-radius: 5px;
+  transition: width 0.4s ease;
+}
+
+#loadingText {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 0.5rem;
+}
