@@ -125,7 +125,17 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
         method: 'POST',
         body: formData
       })
-      .then(response => response.json())
+      .then(async response => {
+  const text = await response.text();
+  console.log('Raw response:', text);
+
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    throw new Error("Invalid JSON from server: " + text);
+  }
+})
+
       .then(data => {
         if (data.ok) {
           alert('Uploaded to print queue successfully!');
