@@ -109,55 +109,51 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
   }
 
   canvas.toBlob((blob) => {
-    if (!blob) {
-      alert('Something went wrong preparing the image.');
-      return;
-    }
+  if (!blob) {
+    alert('Something went wrong preparing the image.');
+    return;
+  }
 
-    const fr = new FileReader();
-    fr.onloadend = () => {
-      const formData = new FormData();
-      formData.append('photo', fr.result);
-      formData.append('copies', String(copies));
-      formData.append('ts', String(Date.now()));
-      
-      console.log('Sending to:', CONFIG.uploadURL);
-      console.log('Payload:', formData);
+  const fr = new FileReader();
+  fr.onloadend = () => {
+    const formData = new FormData();
+    formData.append('photo', fr.result);
+    formData.append('copies', String(copies));
+    formData.append('ts', String(Date.now()));
 
-            fetch(CONFIG.uploadURL, {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => {
-  return response.text().then(text => {
-    try {
-      return JSON.parse(text);
-    } catch (err) {
-      throw new Error("Invalid JSON from server: " + text);
-    }
-  });
-});
+    console.log('Sending to Apps Script:', CONFIG.uploadURL);
+    console.log('Copies:', copies);
+    console.log('Photo preview:', fr.result.slice(0, 50) + '...'); // truncated
 
-      .then(text => {
+    fetch(CONFIG.uploadURL, {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => {
+      return response.text().then(text => {
         try {
-          const data = JSON.parse(text);
-          if (data.ok) {
-            alert('Uploaded successfully!');
-          } else {
-            console.error(data);
-            alert('Upload failed: ' + data.error);
-          }
+          return JSON.parse(text);
         } catch (err) {
-          console.error('Invalid JSON from server:', text);
-          alert('Server returned invalid response. Check logs or deployment settings.');
+          throw new Error("Invalid JSON from server: " + text);
         }
       });
-      .catch(err => {
-        console.error(err);
-        alert('Error sending image to server.');
-      });
+    })
+    .then(data => {
+      if (data.ok) {
+        alert('Uploaded successfully!');
+      } else {
+        console.error(data);
+        alert('Upload failed: ' + data.error);
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert('Error sending image to server: ' + err.message);
+    });
+  };
 
+  // ✅ This must be placed here, inside the toBlob callback
+  fr.readAsDataURL(blob);
+}, 'image/jpeg', 0.92);
 
-    fr.readAsDataURL(blob);
-  }, 'image/jpeg', 0.92);
 });
