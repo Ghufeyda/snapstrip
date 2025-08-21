@@ -106,7 +106,7 @@ const loadingBarContainer = document.getElementById('loadingBarContainer');
 const loadingBar = document.getElementById('loadingBar');
 const loadingText = document.getElementById('loadingText');
 
-document.getElementById('confirmPrint').addEventListener('click', () => {
+printBtn.addEventListener('click', () => {
   const copies = parseInt(document.getElementById('copies').value, 10);
   if (isNaN(copies) || copies < 1 || copies > CONFIG.maxCopies) {
     alert(`Please enter between 1 and ${CONFIG.maxCopies} copies.`);
@@ -188,4 +188,3 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
   fr.readAsDataURL(pdfBlob);
 });
 
-});
