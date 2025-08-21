@@ -120,6 +120,9 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
       formData.append('photo', fr.result);
       formData.append('copies', String(copies));
       formData.append('ts', String(Date.now()));
+      
+      console.log('Sending to:', CONFIG.uploadURL);
+      console.log('Payload:', formData);
 
             fetch(CONFIG.uploadURL, {
         method: 'POST',
