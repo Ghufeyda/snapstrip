@@ -100,7 +100,7 @@ document.getElementById('downloadImage').addEventListener('click', () => {
   }, 'image/jpeg');
 });
 
-// Upload and print
+  // Upload and print as PDF
 document.getElementById('confirmPrint').addEventListener('click', () => {
   const copies = parseInt(document.getElementById('copies').value, 10);
   if (isNaN(copies) || copies < 1 || copies > CONFIG.maxCopies) {
@@ -108,57 +108,55 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
     return;
   }
 
-  canvas.toBlob((blob) => {
-    if (!blob) {
-      alert('Something went wrong preparing the image.');
-      return;
-    }
+  // Create a PDF the same size as canvas
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({
+    orientation: 'landscape',
+    unit: 'px',
+    format: [canvas.width, canvas.height]
+  });
 
-    const fr = new FileReader();
-    fr.onloadend = () => {
-      const formData = new FormData();
-      formData.append('photo', fr.result);
-      formData.append('copies', String(copies));
-      formData.append('ts', String(Date.now()));
+  // Render canvas as image inside the PDF
+  const imgData = canvas.toDataURL("image/jpeg", 0.92);
+  pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
 
-      console.log('Sending to Apps Script:', CONFIG.uploadURL);
-      console.log('Copies:', copies);
-      console.log('Photo preview:', fr.result.slice(0, 50) + '...'); // truncated
+  // Convert PDF to Blob
+  const pdfBlob = pdf.output('blob');
 
-      fetch(CONFIG.uploadURL, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/x-www-form-urlencoded'
-  },
-  body: new URLSearchParams({
-    photo: fr.result,
-    copies: String(copies),
-    ts: String(Date.now())
-  })
-})
-      .then(response => {
-        return response.text().then(text => {
-          try {
-            return JSON.parse(text);
-          } catch (err) {
-            throw new Error("Invalid JSON from server: " + text);
-          }
-        });
+  const fr = new FileReader();
+  fr.onloadend = () => {
+    fetch(CONFIG.uploadURL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        photo: fr.result,            // now a base64 PDF
+        copies: String(copies),
+        ts: String(Date.now())
       })
-      .then(data => {
-        if (data.ok) {
-          alert('Uploaded successfully!');
-        } else {
-          console.error(data);
-          alert('Upload failed: ' + data.error);
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        alert('Error sending image to server: ' + err.message);
-      });
-    };
+    })
+    .then(response => response.text())
+    .then(text => {
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (err) {
+        throw new Error("Invalid JSON from server: " + text);
+      }
+      if (data.ok) {
+        alert('Uploaded successfully as PDF!');
+      } else {
+        alert('Upload failed: ' + data.error);
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert('Error sending PDF to server: ' + err.message);
+    });
+  };
 
-    fr.readAsDataURL(blob);
-  }, 'image/jpeg', 0.92);
+  fr.readAsDataURL(pdfBlob);  // read the PDF blob as base64
+});
+
 });
