@@ -138,6 +138,7 @@ printBtn.addEventListener('click', () => {
   });
 
   const imgData = canvas.toDataURL("image/jpeg", 0.92);
+  console.log(imgData);  // To verify base64 string
   pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
   const pdfBlob = pdf.output('blob');
 
