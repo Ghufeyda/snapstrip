@@ -85,107 +85,87 @@ photoInputs.forEach((input, index) => {
   });
 });
 
-// Download button
+// Set up loading spinner or bar element (make sure it's added in HTML)
+const loadingIndicator = document.getElementById('loadingIndicator');  // Add this in your HTML (e.g., a simple div or spinner)
+
+// Show loading indicator
+function showLoading() {
+  loadingIndicator.style.display = 'block';  // Show the loading indicator
+}
+
+// Hide loading indicator
+function hideLoading() {
+  loadingIndicator.style.display = 'none';  // Hide the loading indicator
+}
+
+// Download Image (JPEG)
 document.getElementById('downloadImage').addEventListener('click', () => {
+  showLoading();  // Show loading indicator when download starts
+
   canvas.toBlob((blob) => {
     if (!blob) {
       alert("Error creating image for download.");
+      hideLoading();
       return;
     }
 
     const link = document.createElement('a');
-    link.download = 'snapstrip-collage.png';
+    link.download = 'snapstrip-collage.jpg';
     link.href = URL.createObjectURL(blob);
     link.click();
+
+    hideLoading();  // Hide loading indicator after download completes
   }, 'image/jpeg');
 });
 
-// Upload and print as PDF
-const printBtn = document.getElementById('confirmPrint');
-const loadingBarContainer = document.getElementById('loadingBarContainer');
-const loadingBar = document.getElementById('loadingBar');
-const loadingText = document.getElementById('loadingText');
-
-printBtn.addEventListener('click', () => {
+// Print Image (JPEG)
+document.getElementById('confirmPrint').addEventListener('click', () => {
   const copies = parseInt(document.getElementById('copies').value, 10);
   if (isNaN(copies) || copies < 1 || copies > CONFIG.maxCopies) {
     alert(`Please enter between 1 and ${CONFIG.maxCopies} copies.`);
     return;
   }
 
-  // Disable button & show loading
-  printBtn.disabled = true;
-  printBtn.textContent = "Printing…";
-  loadingBarContainer.style.display = "block";
-  loadingBar.style.width = "0%";
-  loadingText.textContent = "Uploading… please wait";
+  showLoading();  // Show loading indicator when print starts
 
-  // Animate fake progress while uploading
-  let progress = 0;
-  const interval = setInterval(() => {
-    if (progress < 90) { // stop at 90% until response
-      progress += 10;
-      loadingBar.style.width = progress + "%";
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      alert('Something went wrong preparing the image.');
+      hideLoading();
+      return;
     }
-  }, 400);
 
-  // === PDF GENERATION CODE (from previous step) ===
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({
-    orientation: 'landscape',
-    unit: 'px',
-    format: [canvas.width, canvas.height]
-  });
+    const fr = new FileReader();
+    fr.onloadend = () => {
+      const formData = new FormData();
+      formData.append('photo', fr.result);  // JPEG data
+      formData.append('copies', String(copies));
+      formData.append('ts', String(Date.now()));
 
-  const imgData = canvas.toDataURL("image/jpeg", 0.92);  // Check base64 string
-  console.log("Generated Base64: ", imgData);
-
-  pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
-  const pdfBlob = pdf.output('blob');
-
-  const fr = new FileReader();
-  fr.onloadend = () => {
-    fetch(CONFIG.uploadURL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-        photo: fr.result,  // Send base64 PDF
-        copies: String(copies),
-        ts: String(Date.now())
+      fetch(CONFIG.uploadURL, {
+        method: 'POST',
+        body: new URLSearchParams({
+          photo: fr.result,
+          copies: String(copies),
+          ts: String(Date.now())
+        })
       })
-    })
-    .then(res => res.text())
-    .then(text => {
-      clearInterval(interval);
-      loadingBar.style.width = "100%";
-      loadingText.textContent = "Upload complete!";
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (err) {
-        throw new Error("Invalid JSON from server: " + text);
-      }
-      if (data.ok) {
-        alert("Uploaded successfully as PDF!");
-      } else {
-        alert("Upload failed: " + data.error);
-      }
-    })
-    .catch(err => {
-      clearInterval(interval);
-      loadingText.textContent = "Error!";
-      alert("Error sending PDF: " + err.message);
-    })
-    .finally(() => {
-      // Re-enable button after user closes alert
-      printBtn.disabled = false;
-      printBtn.textContent = "Print";
-      setTimeout(() => {
-        loadingBarContainer.style.display = "none";
-      }, 1000);
-    });
-  };
-  fr.readAsDataURL(pdfBlob);
+        .then(response => response.text())
+        .then(text => JSON.parse(text))
+        .then(data => {
+          if (data.ok) {
+            alert("✅ Print request sent!");
+          } else {
+            alert("❌ Upload failed: " + data.error);
+          }
+          hideLoading();  // Hide loading indicator after processing
+        })
+        .catch(err => {
+          alert("⚠️ Error: " + err.message);
+          hideLoading();  // Hide loading indicator in case of error
+        });
+    };
+
+    fr.readAsDataURL(blob);
+  }, 'image/jpeg', 0.92);
 });
