@@ -121,34 +121,39 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
       formData.append('copies', String(copies));
       formData.append('ts', String(Date.now()));
 
-      fetch(CONFIG.uploadURL, {
+            fetch(CONFIG.uploadURL, {
         method: 'POST',
         body: formData
       })
-      .then(async response => {
-  const text = await response.text();
-  console.log('Raw response:', text);
-
-  try {
-    return JSON.parse(text);
-  } catch (e) {
-    throw new Error("Invalid JSON from server: " + text);
-  }
+      .then(response => {
+  return response.text().then(text => {
+    try {
+      return JSON.parse(text);
+    } catch (err) {
+      throw new Error("Invalid JSON from server: " + text);
+    }
+  });
 })
 
-      .then(data => {
-        if (data.ok) {
-          alert('Uploaded to print queue successfully!');
-        } else {
-          console.error(data);
-          alert('Upload failed: ' + data.error);
+      .then(text => {
+        try {
+          const data = JSON.parse(text);
+          if (data.ok) {
+            alert('Uploaded successfully!');
+          } else {
+            console.error(data);
+            alert('Upload failed: ' + data.error);
+          }
+        } catch (err) {
+          console.error('Invalid JSON from server:', text);
+          alert('Server returned invalid response. Check logs or deployment settings.');
         }
       })
       .catch(err => {
         console.error(err);
-        alert('Error sending image to printer queue.');
+        alert('Error sending image to server.');
       });
-    };
+
 
     fr.readAsDataURL(blob);
   }, 'image/jpeg', 0.92);
