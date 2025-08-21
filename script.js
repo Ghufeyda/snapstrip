@@ -101,12 +101,33 @@ document.getElementById('downloadImage').addEventListener('click', () => {
 });
 
   // Upload and print as PDF
+const printBtn = document.getElementById('confirmPrint');
+const loadingBarContainer = document.getElementById('loadingBarContainer');
+const loadingBar = document.getElementById('loadingBar');
+const loadingText = document.getElementById('loadingText');
+
 document.getElementById('confirmPrint').addEventListener('click', () => {
   const copies = parseInt(document.getElementById('copies').value, 10);
   if (isNaN(copies) || copies < 1 || copies > CONFIG.maxCopies) {
     alert(`Please enter between 1 and ${CONFIG.maxCopies} copies.`);
     return;
   }
+
+  // Disable button & show loading
+  printBtn.disabled = true;
+  printBtn.textContent = "Printing…";
+  loadingBarContainer.style.display = "block";
+  loadingBar.style.width = "0%";
+  loadingText.textContent = "Uploading… please wait";
+
+  // Animate fake progress while uploading
+  let progress = 0;
+  const interval = setInterval(() => {
+    if (progress < 90) { // stop at 90% until response
+      progress += 10;
+      loadingBar.style.width = progress + "%";
+    }
+  }, 400);
 
   // Create a PDF the same size as canvas
   const { jsPDF } = window.jspdf;
