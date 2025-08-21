@@ -126,9 +126,16 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
       console.log('Photo preview:', fr.result.slice(0, 50) + '...'); // truncated
 
       fetch(CONFIG.uploadURL, {
-        method: 'POST',
-        body: formData
-      })
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded'
+  },
+  body: new URLSearchParams({
+    photo: fr.result,
+    copies: String(copies),
+    ts: String(Date.now())
+  })
+})
       .then(response => {
         return response.text().then(text => {
           try {
