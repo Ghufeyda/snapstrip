@@ -136,7 +136,7 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
       throw new Error("Invalid JSON from server: " + text);
     }
   });
-})
+});
 
       .then(text => {
         try {
@@ -151,7 +151,7 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
           console.error('Invalid JSON from server:', text);
           alert('Server returned invalid response. Check logs or deployment settings.');
         }
-      })
+      });
       .catch(err => {
         console.error(err);
         alert('Error sending image to server.');
