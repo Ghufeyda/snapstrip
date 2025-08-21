@@ -129,7 +129,7 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
     }
   }, 400);
 
-  // Create a PDF the same size as canvas
+  // === PDF GENERATION CODE (from previous step) ===
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({
     orientation: 'landscape',
@@ -137,11 +137,8 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
     format: [canvas.width, canvas.height]
   });
 
-  // Render canvas as image inside the PDF
   const imgData = canvas.toDataURL("image/jpeg", 0.92);
   pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
-
-  // Convert PDF to Blob
   const pdfBlob = pdf.output('blob');
 
   const fr = new FileReader();
@@ -152,13 +149,16 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-        photo: fr.result,            // now a base64 PDF
+        photo: fr.result,
         copies: String(copies),
         ts: String(Date.now())
       })
     })
-    .then(response => response.text())
+    .then(res => res.text())
     .then(text => {
+      clearInterval(interval);
+      loadingBar.style.width = "100%";
+      loadingText.textContent = "Upload complete!";
       let data;
       try {
         data = JSON.parse(text);
@@ -166,18 +166,26 @@ document.getElementById('confirmPrint').addEventListener('click', () => {
         throw new Error("Invalid JSON from server: " + text);
       }
       if (data.ok) {
-        alert('Uploaded successfully as PDF!');
+        alert("Uploaded successfully as PDF!");
       } else {
-        alert('Upload failed: ' + data.error);
+        alert("Upload failed: " + data.error);
       }
     })
     .catch(err => {
-      console.error(err);
-      alert('Error sending PDF to server: ' + err.message);
+      clearInterval(interval);
+      loadingText.textContent = "Error!";
+      alert("Error sending PDF: " + err.message);
+    })
+    .finally(() => {
+      // Re-enable button after user closes alert
+      printBtn.disabled = false;
+      printBtn.textContent = "Print";
+      setTimeout(() => {
+        loadingBarContainer.style.display = "none";
+      }, 1000);
     });
   };
-
-  fr.readAsDataURL(pdfBlob);  // read the PDF blob as base64
+  fr.readAsDataURL(pdfBlob);
 });
 
 });
