@@ -156,8 +156,6 @@ console.log("Generated Base64: ", imgData);
     ts: String(Date.now())
   })
 })
-
-    })
     .then(res => res.text())
     .then(text => {
       clearInterval(interval);
