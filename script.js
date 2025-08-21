@@ -137,23 +137,26 @@ printBtn.addEventListener('click', () => {
     format: [canvas.width, canvas.height]
   });
 
-  const imgData = canvas.toDataURL("image/jpeg", 0.92);
-  console.log(imgData);  // To verify base64 string
+  const imgData = canvas.toDataURL("image/jpeg", 0.92);  // Check base64 string
+console.log("Generated Base64: ", imgData);
+
   pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
   const pdfBlob = pdf.output('blob');
 
   const fr = new FileReader();
   fr.onloadend = () => {
     fetch(CONFIG.uploadURL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-        photo: fr.result,
-        copies: String(copies),
-        ts: String(Date.now())
-      })
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded'
+  },
+  body: new URLSearchParams({
+    photo: `data:application/pdf;base64,${fr.result}`,  // Ensure format matches (image/pdf)
+    copies: String(copies),
+    ts: String(Date.now())
+  })
+})
+
     })
     .then(res => res.text())
     .then(text => {
