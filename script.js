@@ -100,7 +100,7 @@ document.getElementById('downloadImage').addEventListener('click', () => {
   }, 'image/jpeg');
 });
 
-  // Upload and print as PDF
+// Upload and print as PDF
 const printBtn = document.getElementById('confirmPrint');
 const loadingBarContainer = document.getElementById('loadingBarContainer');
 const loadingBar = document.getElementById('loadingBar');
@@ -138,7 +138,7 @@ printBtn.addEventListener('click', () => {
   });
 
   const imgData = canvas.toDataURL("image/jpeg", 0.92);  // Check base64 string
-console.log("Generated Base64: ", imgData);
+  console.log("Generated Base64: ", imgData);
 
   pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
   const pdfBlob = pdf.output('blob');
@@ -146,16 +146,16 @@ console.log("Generated Base64: ", imgData);
   const fr = new FileReader();
   fr.onloadend = () => {
     fetch(CONFIG.uploadURL, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/x-www-form-urlencoded'
-  },
-  body: new URLSearchParams({
-    photo: `data:application/pdf;base64,${fr.result}`,  // Ensure format matches (image/pdf)
-    copies: String(copies),
-    ts: String(Date.now())
-  })
-})
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        photo: fr.result,  // Send base64 PDF
+        copies: String(copies),
+        ts: String(Date.now())
+      })
+    })
     .then(res => res.text())
     .then(text => {
       clearInterval(interval);
@@ -189,4 +189,3 @@ console.log("Generated Base64: ", imgData);
   };
   fr.readAsDataURL(pdfBlob);
 });
-
