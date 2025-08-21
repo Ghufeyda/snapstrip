@@ -15,7 +15,7 @@ const CONFIG = {
   templateSrc: 'template.png',
   uploadLimit: 3,
   maxCopies: 5,
-  uploadURL: 'https://script.google.com/macros/s/AKfycbwUJHumh-VHTM0J1NwE4GVWj1NbpWQJ5e5bthEHZr4LReYOwRbyR_Dm0rxJlajr_nRJfw/exec'
+  uploadURL: 'https://script.google.com/macros/s/AKfycbzjYR0hiyu7aU9DhE9Nbd1ITwNrPdKDieJW4ZT2Kqgvj8hJdaeublZLmvhUxAxOZBE/exec'
 };
 
 // ==========================
