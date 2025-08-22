@@ -163,51 +163,47 @@ printBtn.addEventListener('click', () => {
 
     const fr = new FileReader();
     fr.onloadend = () => {
-  const base64Data = fr.result;
-  
-  // Debug log to check the base64 string
-  console.log("Base64 Data: ", base64Data);
+      updateProgress(50, 'Uploading to print queue...');
 
-  updateProgress(50, 'Uploading to print queue...');
-
-  // POST to Apps Script Web App
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/x-www-form-urlencoded',  // Correct content type
-  },
-  body: new URLSearchParams({
-      photo: base64Data,       // Ensure this contains a valid base64 string
-      copies: String(copies),  // Copies requested
-      ts: String(Date.now())   // Client timestamp
-    })
-  })
-  .then(response => {
-    updateProgress(75, 'Processing response...');
-    return response.text();
-  })
-  .then(text => {
-    try {
-      const data = JSON.parse(text);
-      if (data.ok) {
-        updateProgress(100, '✅ Uploaded successfully!');
-        alert("✅ Print request sent!");
-      } else {
-        throw new Error(data.error || 'Upload failed.');
-      }
-    } catch (err) {
-      throw new Error("Invalid server response: " + text);
-    }
-  })
-  .catch(err => {
-    alert("⚠️ Error: " + err.message);
-  })
-  .finally(() => {
-    hideProgress();
-  });
-};
-
+      // POST to Apps Script Web App
+      fetch(CONFIG.uploadURL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',  // Correct content type
+        },
+        body: new URLSearchParams({
+          photo: fr.result,          // Base64 JPEG
+          copies: String(copies),    // Copies requested
+          ts: String(Date.now())     // Client timestamp
+        })
+      })
+        .then(response => {
+          updateProgress(75, 'Processing response...');
+          return response.text();
+        })
+        .then(text => {
+          try {
+            const data = JSON.parse(text);
+            if (data.ok) {
+              updateProgress(100, '✅ Uploaded successfully!');
+              alert("✅ Print request sent!");
+            } else {
+              throw new Error(data.error || 'Upload failed.');
+            }
+          } catch (err) {
+            throw new Error("Invalid server response: " + text);
+          }
+        })
+        .catch(err => {
+          alert("⚠️ Error: " + err.message);
+        })
+        .finally(() => {
+          hideProgress();
+        });
+    };
 
     // Convert blob → base64
     fr.readAsDataURL(blob);
   }, 'image/jpeg', 0.92); // Slight compression for balance
 });
+
