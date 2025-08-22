@@ -165,6 +165,13 @@ printBtn.addEventListener('click', () => {
     fr.onloadend = () => {
       updateProgress(50, 'Uploading to print queue...');
 
+      // Log data before sending to Apps Script
+      console.log('Sending data:', {
+        photo: fr.result,          // Base64 JPEG
+        copies: String(copies),    // Copies requested
+        ts: String(Date.now())     // Client timestamp
+      });
+
       // POST to Apps Script Web App
       fetch(CONFIG.uploadURL, {
         method: 'POST',
