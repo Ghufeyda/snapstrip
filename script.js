@@ -171,9 +171,11 @@ printBtn.addEventListener('click', () => {
   updateProgress(50, 'Uploading to print queue...');
 
   // POST to Apps Script Web App
-  fetch(CONFIG.uploadURL, {
-    method: 'POST',
-    body: new URLSearchParams({
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded',  // Correct content type
+  },
+  body: new URLSearchParams({
       photo: base64Data,       // Ensure this contains a valid base64 string
       copies: String(copies),  // Copies requested
       ts: String(Date.now())   // Client timestamp
