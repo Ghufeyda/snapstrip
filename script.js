@@ -124,6 +124,36 @@ function hideProgress() {
   printBtn.disabled = false;
 }
 
+/**
+ * Saves the uploaded image to Google Drive with the number of copies included in the filename.
+ */
+function saveImageToDrive(imageBlob, timestamp, copies) {
+  const folder = DriveApp.getFolderById(FOLDER_ID);
+
+  // Get the current date and time
+  const date = new Date(timestamp);  // Timestamp from POST data
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+
+  // Convert the 24-hour clock to 12-hour clock
+  const hours12 = hours % 12;
+  const minutesFormatted = minutes < 10 ? '0' + minutes : minutes;
+  const dateString = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+
+  // Generate the filename
+  const fileName = `${copies}x_${'Name'}_${hours12}:${minutesFormatted} ${ampm}_${dateString}.jpg`; // Replace 'Name' with actual name
+
+  // Save the image
+  const file = folder.createFile(imageBlob);
+  file.setName(fileName);
+
+  Logger.log('File saved with name: ' + fileName);
+
+  return file;
+}
+
+
 // ==========================
 // DOWNLOAD HANDLER (JPEG)
 // ==========================
