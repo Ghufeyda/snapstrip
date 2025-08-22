@@ -14,7 +14,7 @@ const CONFIG = {
     { x: 995.1, y: 345 }
   ],
   placeholderSize: { width: 450, height: 600 }, // Fixed slot size for each photo
-  templateSrc: 'template.png',                  // Collage template overlay
+  templateSrc: 'template2.png',                  // Collage template overlay
   uploadLimit: 3,                               // Max number of photos to upload
   maxCopies: 5,                                 // Restrict number of copies
   uploadURL: 'https://script.google.com/macros/s/AKfycbwaVXXhFHBWMhJG2a0WyWLM_BmiEeG-GXGpVzwbOaoKKvxcZwVFQpemO_hXOtEJT0A/exec',
