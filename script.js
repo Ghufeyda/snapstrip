@@ -9,11 +9,11 @@ const CONFIG = {
   },
   placeholders: [
     // Coordinates = bottom-left corner of placeholder
-    { x: 54.9, y: 345 },
-    { x: 525.1, y: 345 },
-    { x: 995.1, y: 345 }
+    { x: 105, y: 337.6 },
+    { x: 525.8, y: 337.6 },
+    { x: 946.7, y: 337.6 }
   ],
-  placeholderSize: { width: 450, height: 600 }, // Fixed slot size for each photo
+  placeholderSize: { width: 402.9, height: 537.2 }, // Fixed slot size for each photo
   templateSrc: 'template2.png',                  // Collage template overlay
   uploadLimit: 3,                               // Max number of photos to upload
   maxCopies: 5,                                 // Restrict number of copies
