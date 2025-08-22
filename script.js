@@ -1,184 +1,205 @@
-// ============================ CONFIG ============================
+// ==========================
+// CONFIGURATION SECTION
+// ==========================
+// Central place for constants so scaling / maintenance is easy
+const CONFIG = {
+  canvas: {
+    width: 1500,
+    height: 1050
+  },
+  placeholders: [
+    // Coordinates = bottom-left corner of placeholder
+    { x: 105, y: 337.6 },
+    { x: 525.8, y: 337.6 },
+    { x: 946.7, y: 337.6 }
+  ],
+  placeholderSize: { width: 402.9, height: 537.2 }, // Fixed slot size for each photo
+  templateSrc: 'template.png',                  // Collage template overlay
+  uploadLimit: 3,                               // Max number of photos to upload
+  maxCopies: 5,                                 // Restrict number of copies
+  uploadURL: 'https://script.google.com/macros/s/AKfycbwaVXXhFHBWMhJG2a0WyWLM_BmiEeG-GXGpVzwbOaoKKvxcZwVFQpemO_hXOtEJT0A/exec',
+  driveFolderId: '164s0L6MUUaRhYYBaBsvnV-w3pqqU-6U3' // Reference for backend integration
+};
 
-// Google Apps Script URL for logging status (your Web App URL)
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwaVXXhFHBWMhJG2a0WyWLM_BmiEeG-GXGpVzwbOaoKKvxcZwVFQpemO_hXOtEJT0A/exec';
-const DRIVE_FOLDER_ID = "164s0L6MUUaRhYYBaBsvnV-w3pqqU-6U3"; // <-- Your Drive folder ID
-
-// The canvas for image preview
+// ==========================
+// CANVAS INITIALIZATION
+// ==========================
 const canvas = document.getElementById('previewCanvas');
 const ctx = canvas.getContext('2d');
 
-// File input elements for photo upload
-const photo1Input = document.getElementById('photo1');
-const photo2Input = document.getElementById('photo2');
-const photo3Input = document.getElementById('photo3');
+canvas.width = CONFIG.canvas.width;
+canvas.height = CONFIG.canvas.height;
 
-// Dropdown for selecting the number of copies
-const copiesSelect = document.getElementById('copies');
+// Track uploaded photos
+const photoInputs = Array.from(
+  { length: CONFIG.uploadLimit }, 
+  (_, i) => document.getElementById(`photo${i + 1}`)
+);
+const uploadedImages = new Array(CONFIG.uploadLimit).fill(null);
 
-// Progress bar elements
+// Load the collage template (frame/background)
+let templateImg = new Image();
+templateImg.src = CONFIG.templateSrc;
+
+// Draw only the template (blank slate)
+function drawInitialTemplate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+}
+
+// Draw template + uploaded photos in placeholders
+function drawPreview() {
+  drawInitialTemplate();
+  uploadedImages.forEach((img, index) => {
+    if (!img) return;
+
+    const { x, y } = CONFIG.placeholders[index];
+    const { width, height } = CONFIG.placeholderSize;
+
+    // Centering & scaling logic
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const scale = Math.min(width / img.width, height / img.height);
+
+    const renderWidth = img.width * scale;
+    const renderHeight = img.height * scale;
+
+    const renderX = centerX - renderWidth / 2;
+    const renderY = centerY - renderHeight / 2;
+
+    ctx.drawImage(img, renderX, renderY, renderWidth, renderHeight);
+  });
+}
+
+// Draw template on first load
+templateImg.onload = drawInitialTemplate;
+
+// ==========================
+// FILE UPLOAD HANDLING
+// ==========================
+photoInputs.forEach((input, index) => {
+  input.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const img = new Image();
+      img.onload = function () {
+        uploadedImages[index] = img;
+        drawPreview(); // Redraw collage when new photo uploaded
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+});
+
+// ==========================
+// LOADING / PROGRESS HANDLING
+// ==========================
+const printBtn = document.getElementById('confirmPrint');
 const progressContainer = document.getElementById('progressContainer');
 const progressBar = document.getElementById('progressBar');
 const progressText = document.getElementById('progressText');
 
-// Action buttons
-const downloadButton = document.getElementById('downloadImage');
-const printButton = document.getElementById('confirmPrint');
-
-// Array to store the uploaded photos
-let uploadedPhotos = [];
-
-// ============================ EVENT LISTENERS ============================
-
-// Upload event listeners for photo inputs
-photo1Input.addEventListener('change', () => handleImageUpload(photo1Input));
-photo2Input.addEventListener('change', () => handleImageUpload(photo2Input));
-photo3Input.addEventListener('change', () => handleImageUpload(photo3Input));
-
-// Print button event listener
-printButton.addEventListener('click', () => handlePrint());
-
-// Download button event listener
-downloadButton.addEventListener('click', () => handleDownload());
-
-// ============================ HANDLERS ============================
-
-// Handle image upload and preview
-function handleImageUpload(inputElement) {
-  const file = inputElement.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(event) {
-    const img = new Image();
-    img.onload = function() {
-      uploadedPhotos.push(img);  // Add the image to the photos array
-      if (uploadedPhotos.length === 3) {
-        drawPreview();
-      }
-    };
-    img.src = event.target.result;
-  };
-  reader.readAsDataURL(file);
+// Show progress UI
+function showProgress(msg) {
+  progressContainer.style.display = 'block';
+  progressText.textContent = msg || 'Uploading...';
+  progressBar.value = 20; // Start progress baseline
+  printBtn.disabled = true;
 }
 
-// Draw the images on the canvas (preview)
-function drawPreview() {
-  // Clear canvas before redrawing
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Calculate image positions and sizes based on canvas size and image dimensions
-  const imageWidth = canvas.width / 3;
-  const imageHeight = canvas.height;
-
-  uploadedPhotos.forEach((img, index) => {
-    const x = index * imageWidth;
-    const y = 0;
-    ctx.drawImage(img, x, y, imageWidth, imageHeight);
-  });
+// Update progress value + optional message
+function updateProgress(value, msg) {
+  progressBar.value = value;
+  if (msg) progressText.textContent = msg;
 }
 
-// Handle the download action
-function handleDownload() {
-  const selectedCopies = copiesSelect.value;
-  const canvasDataUrl = canvas.toDataURL('image/jpeg');
-  
-  // Create an anchor element to trigger download
-  const anchor = document.createElement('a');
-  anchor.href = canvasDataUrl;
-  anchor.download = 'collage.jpg';
-  anchor.click();
-}
-
-// Handle the print action
-async function handlePrint() {
-  const selectedCopies = copiesSelect.value;
-  const canvasDataUrl = canvas.toDataURL('image/jpeg');
-
-  // Show progress bar while printing
-  showProgress();
-
-  try {
-    // Upload image to Google Drive via Google Apps Script
-    const response = await uploadImageToDrive(canvasDataUrl, selectedCopies);
-
-    // If successful, print and log the status
-    const { fileId, fileName } = response;
-
-    // Print job will be sent to the Node.js backend (triggered via Gas)
-    await printJob(fileId, fileName, selectedCopies);
-
-    // Log success in Google Sheets
-    await logPrintStatus(fileName, "printed");
-
-    // Hide progress after print
-    hideProgress();
-  } catch (error) {
-    console.error("Print failed:", error);
-    hideProgress();
-  }
-}
-
-// Upload the image to Google Drive using Google Apps Script
-async function uploadImageToDrive(dataUrl, copies) {
-  const response = await fetch(GAS_URL, {
-    method: 'POST',
-    body: new URLSearchParams({
-      photo: dataUrl,
-      copies: copies,
-      ts: Date.now(),
-      folderId: DRIVE_FOLDER_ID // Pass the Folder ID to the GAS script
-    })
-  });
-  const result = await response.json();
-  if (result.ok) {
-    return { fileId: result.fileId, fileName: result.fileName };
-  } else {
-    throw new Error("Failed to upload image to Google Drive");
-  }
-}
-
-// Print job request to Node.js backend (assuming Node.js print listener)
-async function printJob(fileId, fileName, copies) {
-  const response = await fetch(`${GAS_URL}?action=updateStatus&filename=${fileName}&status=pending`);
-  const result = await response.json();
-  
-  if (!result.ok) {
-    throw new Error("Failed to update print status");
-  }
-  
-  // Make sure the file gets printed via Node.js
-  await fetch(`http://localhost:3000/print?fileId=${fileId}&copies=${copies}`);
-}
-
-// Log the print status in Google Sheets
-async function logPrintStatus(filename, status) {
-  const response = await fetch(`${GAS_URL}?action=updateStatus&filename=${filename}&status=${status}`);
-  const result = await response.json();
-  if (!result.ok) {
-    throw new Error("Failed to log print status");
-  }
-}
-
-// ============================ PROGRESS BAR ============================
-
-function showProgress() {
-  progressContainer.style.display = "block";
-  progressBar.value = 0;
-  progressText.textContent = "Uploading...";
-
-  let progressInterval = setInterval(() => {
-    if (progressBar.value < 100) {
-      progressBar.value += 5;
-    } else {
-      clearInterval(progressInterval);
-      progressText.textContent = "Printing...";
-    }
-  }, 500);
-}
-
+// Hide/reset progress UI
 function hideProgress() {
-  progressContainer.style.display = "none";
+  progressContainer.style.display = 'none';
   progressBar.value = 0;
-  progressText.textContent = "";
+  printBtn.disabled = false;
 }
+
+// ==========================
+// DOWNLOAD HANDLER (JPEG)
+// ==========================
+document.getElementById('downloadImage').addEventListener('click', () => {
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      alert("❌ Error creating image for download.");
+      return;
+    }
+    const link = document.createElement('a');
+    link.download = 'snapstrip-collage.jpg';
+    link.href = URL.createObjectURL(blob);
+    link.click();
+  }, 'image/jpeg');
+});
+
+// ==========================
+// PRINT HANDLER (UPLOAD TO GAS)
+// ==========================
+printBtn.addEventListener('click', () => {
+  const copies = parseInt(document.getElementById('copies').value, 10);
+
+  // Validate copies selection
+  if (isNaN(copies) || copies < 1 || copies > CONFIG.maxCopies) {
+    alert(`⚠️ Please select between 1 and ${CONFIG.maxCopies} copies.`);
+    return;
+  }
+
+  showProgress('Preparing image...');
+
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      alert('❌ Something went wrong preparing the image.');
+      hideProgress();
+      return;
+    }
+
+    const fr = new FileReader();
+    fr.onloadend = () => {
+      updateProgress(50, 'Uploading to print queue...');
+
+      // POST to Apps Script Web App
+      fetch(CONFIG.uploadURL, {
+        method: 'POST',
+        body: new URLSearchParams({
+          photo: fr.result,          // Base64 JPEG
+          copies: String(copies),    // Copies requested
+          ts: String(Date.now())     // Client timestamp
+        })
+      })
+        .then(response => {
+          updateProgress(75, 'Processing response...');
+          return response.text();
+        })
+        .then(text => {
+          try {
+            const data = JSON.parse(text);
+            if (data.ok) {
+              updateProgress(100, '✅ Uploaded successfully!');
+              alert("✅ Print request sent!");
+            } else {
+              throw new Error(data.error || 'Upload failed.');
+            }
+          } catch (err) {
+            throw new Error("Invalid server response: " + text);
+          }
+        })
+        .catch(err => {
+          alert("⚠️ Error: " + err.message);
+        })
+        .finally(() => {
+          hideProgress();
+        });
+    };
+
+    // Convert blob → base64
+    fr.readAsDataURL(blob);
+  }, 'image/jpeg', 0.92); // Slight compression for balance
+});
