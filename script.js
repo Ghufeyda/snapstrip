@@ -177,21 +177,13 @@ printBtn.addEventListener('click', () => {
           ts: String(Date.now())     // Client timestamp
         })
       })
-        .then(response => {
-          updateProgress(75, 'Processing response...');
-          return response.text();
-        })
-        .then(text => {
-          try {
-            const data = JSON.parse(text);
-            if (data.ok) {
-              updateProgress(100, '✅ Uploaded successfully!');
-              alert("✅ Print request sent!");
-            } else {
-              throw new Error(data.error || 'Upload failed.');
-            }
-          } catch (err) {
-            throw new Error("Invalid server response: " + text);
+        .then(response => response.json())  // Parse response as JSON
+        .then(data => {
+          if (data.ok) {
+            updateProgress(100, '✅ Uploaded successfully!');
+            alert("✅ Print request sent!");
+          } else {
+            throw new Error(data.error || 'Upload failed.');
           }
         })
         .catch(err => {
