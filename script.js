@@ -17,7 +17,7 @@ const CONFIG = {
   templateSrc: 'template.png',                  // Collage template overlay
   uploadLimit: 3,                               // Max number of photos to upload
   maxCopies: 5,                                 // Restrict number of copies
-  uploadURL: 'https://script.google.com/macros/s/AKfycbyxjwl4OnHI6S55UPkfxs6q8AdxxXJlAJ5MVj75__KT-bgeJ01V-AcosQBx9h7JbCA/exec',
+  uploadURL: 'https://script.google.com/macros/s/AKfycbwaVXXhFHBWMhJG2a0WyWLM_BmiEeG-GXGpVzwbOaoKKvxcZwVFQpemO_hXOtEJT0A/exec',
   driveFolderId: '164s0L6MUUaRhYYBaBsvnV-w3pqqU-6U3' // Reference for backend integration
 };
 
