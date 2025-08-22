@@ -3,33 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SnapStrip Wedding Booth</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>SnapStrip Collage</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <div class="container">
-    <h1>SnapStrip Wedding Booth</h1>
+    <!-- Title -->
+    <h1>SnapStrip Collage</h1>
 
     <!-- Upload Section -->
     <div class="upload-section">
-      <label for="photo1">Upload Photo 1:</label>
+      <label for="photo1">Upload Photo 1</label>
       <input type="file" id="photo1" accept="image/*" />
 
-      <label for="photo2">Upload Photo 2:</label>
+      <label for="photo2">Upload Photo 2</label>
       <input type="file" id="photo2" accept="image/*" />
 
-      <label for="photo3">Upload Photo 3:</label>
+      <label for="photo3">Upload Photo 3</label>
       <input type="file" id="photo3" accept="image/*" />
     </div>
 
-    <!-- Preview -->
+    <!-- Preview Section -->
     <div class="preview-section">
-      <canvas id="previewCanvas"></canvas>
+      <canvas id="previewCanvas" width="1500" height="1050"></canvas>
     </div>
 
-    <!-- Controls -->
+    <!-- Controls Section -->
     <div class="controls">
-      <label for="copies">Choose number of copies:</label>
+      <!-- Dropdown for Copies -->
+      <label for="copies">Number of Copies</label>
       <select id="copies">
         <option value="1">1</option>
         <option value="2">2</option>
@@ -37,26 +39,27 @@
         <option value="4">4</option>
         <option value="5">5</option>
       </select>
-    </div>
 
-    <!-- Progress -->
-    <div id="progressContainer">
-      <progress id="progressBar" value="0" max="100"></progress>
-      <p id="progressText">Uploading...</p>
-    </div>
+      <!-- Progress Indicator -->
+      <div id="progressContainer" style="display:none;">
+        <progress id="progressBar" max="100" value="0"></progress>
+        <p id="progressText">Uploading...</p>
+      </div>
 
-    <!-- Action Buttons -->
-    <div class="buttons">
-      <button id="downloadImage" class="full-btn">⬇️ Download</button>
-      <button id="confirmPrint" class="full-btn">🖨️ Print</button>
+      <!-- Action Buttons -->
+      <div class="buttons">
+        <button id="downloadImage" class="full-btn">Download</button>
+        <button id="confirmPrint" class="full-btn">Print</button>
+      </div>
     </div>
   </div>
 
-  <!-- Footer -->
+  <!-- Footer pinned to bottom -->
   <footer>
-    &copy; 2025 Rufaidah MK – All Rights Reserved
+    <p>Rufaidah MK &copy; 2025</p>
   </footer>
 
+  <!-- Script -->
   <script src="script.js"></script>
 </body>
 </html>
