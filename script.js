@@ -163,7 +163,7 @@ printBtn.addEventListener('click', () => {
 
     const fr = new FileReader();
     fr.onloadend = () => {
-      updateProgress(50, 'Uploading to server...');
+      updateProgress(50, 'Uploading to print queue...');
 
       // POST to Apps Script Web App
       fetch(CONFIG.uploadURL, {
@@ -183,7 +183,7 @@ printBtn.addEventListener('click', () => {
             const data = JSON.parse(text);
             if (data.ok) {
               updateProgress(100, '✅ Uploaded successfully!');
-              alert("✅ Print request sent to server!");
+              alert("✅ Print request sent!");
             } else {
               throw new Error(data.error || 'Upload failed.');
             }
