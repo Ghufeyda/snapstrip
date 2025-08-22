@@ -90,5 +90,5 @@ A self-service photo collage web app for events. Guests can upload up to 3 photo
 ------------------------------------
 👨‍💻 Contributors
 ------------------------------------
-- Lead Developer: [Your Name]
+- Lead Developer: Rufaidah
 - Use Case: Wedding / Event Photo Booth
