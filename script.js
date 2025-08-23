@@ -1,5 +1,5 @@
 // ==========================
-// CONFIGURATION SECTION
+// CONFIGURATION
 // ==========================
 const CONFIG = {
   canvas: { width: 1500, height: 1050 },
@@ -23,10 +23,10 @@ const ctx = canvas.getContext("2d");
 canvas.width = CONFIG.canvas.width;
 canvas.height = CONFIG.canvas.height;
 
+const uploadedImages = new Array(CONFIG.uploadLimit).fill(null);
 const photoInputs = Array.from({ length: CONFIG.uploadLimit }, (_, i) =>
   document.getElementById(`photo${i + 1}`)
 );
-const uploadedImages = new Array(CONFIG.uploadLimit).fill(null);
 
 let templateImg = new Image();
 templateImg.src = CONFIG.templateSrc;
@@ -41,46 +41,45 @@ function drawPreview() {
   drawInitialTemplate();
   uploadedImages.forEach((img, index) => {
     if (!img) return;
-
     const { x, y } = CONFIG.placeholders[index];
     const { width, height } = CONFIG.placeholderSize;
 
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
     const scale = Math.min(width / img.width, height / img.height);
+    const renderW = img.width * scale;
+    const renderH = img.height * scale;
 
-    const renderWidth = img.width * scale;
-    const renderHeight = img.height * scale;
-    const renderX = centerX - renderWidth / 2;
-    const renderY = centerY - renderHeight / 2;
-
-    ctx.drawImage(img, renderX, renderY, renderWidth, renderHeight);
+    ctx.drawImage(
+      img,
+      x + (width - renderW) / 2,
+      y + (height - renderH) / 2,
+      renderW,
+      renderH
+    );
   });
 }
 
 // ==========================
-// PHOTO UPLOAD HANDLING
+// PHOTO INPUT HANDLING
 // ==========================
 photoInputs.forEach((input, index) => {
-  input.addEventListener("change", (event) => {
-    const file = event.target.files[0];
+  input.addEventListener("change", (e) => {
+    const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = (ev) => {
       const img = new Image();
       img.onload = () => {
         uploadedImages[index] = img;
         drawPreview();
       };
-      img.src = e.target.result;
+      img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   });
 });
 
 // ==========================
-// LOADING UI HANDLING
+// PROGRESS BAR UI
 // ==========================
 const printBtn = document.getElementById("confirmPrint");
 const progressContainer = document.getElementById("progressContainer");
@@ -93,12 +92,10 @@ function showProgress(msg) {
   progressBar.value = 20;
   printBtn.disabled = true;
 }
-
-function updateProgress(value, msg) {
-  progressBar.value = value;
+function updateProgress(val, msg) {
+  progressBar.value = val;
   if (msg) progressText.textContent = msg;
 }
-
 function hideProgress() {
   progressContainer.style.display = "none";
   progressBar.value = 0;
@@ -106,7 +103,7 @@ function hideProgress() {
 }
 
 // ==========================
-// DOWNLOAD COLLAGE (JPEG)
+// DOWNLOAD COLLAGE
 // ==========================
 document.getElementById("downloadImage").addEventListener("click", () => {
   canvas.toBlob((blob) => {
@@ -126,15 +123,12 @@ document.getElementById("downloadImage").addEventListener("click", () => {
 // ==========================
 printBtn.addEventListener("click", () => {
   const copies = parseInt(document.getElementById("copies").value, 10);
-  const guestName = document.getElementById("guestName").value.trim();
+  const guestName = document.getElementById("guestName")
+    ? document.getElementById("guestName").value.trim()
+    : "Guest";
 
-  // Validate inputs
   if (isNaN(copies) || copies < 1 || copies > CONFIG.maxCopies) {
     alert(`⚠️ Please select between 1 and ${CONFIG.maxCopies} copies.`);
-    return;
-  }
-  if (!guestName) {
-    alert("⚠️ Please enter your name before printing.");
     return;
   }
 
@@ -142,29 +136,29 @@ printBtn.addEventListener("click", () => {
 
   canvas.toBlob((blob) => {
     if (!blob) {
-      alert("❌ Something went wrong preparing the image.");
+      alert("❌ Error preparing image.");
       hideProgress();
       return;
     }
 
-    const fr = new FileReader();
-    fr.onloadend = () => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
       updateProgress(50, "Uploading to print queue...");
 
       const payload = {
-        photo: fr.result,
+        photo: reader.result,
         copies: String(copies),
         ts: String(Date.now()),
         name: guestName
       };
-      console.log("Sending data:", payload);
+      console.log("Sending payload:", payload);
 
       fetch(CONFIG.uploadURL, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams(payload)
       })
-        .then((response) => response.json())
+        .then((res) => res.json())
         .then((data) => {
           if (data.ok) {
             updateProgress(100, "✅ Uploaded successfully!");
@@ -180,7 +174,6 @@ printBtn.addEventListener("click", () => {
           hideProgress();
         });
     };
-
-    fr.readAsDataURL(blob);
+    reader.readAsDataURL(blob);
   }, "image/jpeg", 0.92);
 });
