@@ -209,10 +209,12 @@ printBtn.addEventListener('click', () => {
           'Content-Type': 'application/x-www-form-urlencoded',  // Correct content type
         },
         body: new URLSearchParams({
-          photo: fr.result,          // Base64 JPEG
-          copies: String(copies),    // Copies requested
-          ts: String(Date.now())     // Client timestamp
-        })
+  photo: fr.result,
+  copies: String(copies),
+  ts: String(Date.now()),
+  name: "Alice"  // Optional: add guest name
+})
+
       })
         .then(response => response.json())  // Parse response as JSON
         .then(data => {
