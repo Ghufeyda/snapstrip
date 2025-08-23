@@ -1,53 +1,42 @@
 // ==========================
 // CONFIGURATION SECTION
 // ==========================
-// Central place for constants so scaling / maintenance is easy
 const CONFIG = {
-  canvas: {
-    width: 1500,
-    height: 1050
-  },
+  canvas: { width: 1500, height: 1050 },
   placeholders: [
-    // Coordinates = bottom-left corner of placeholder
     { x: 105, y: 337.6 },
     { x: 525.8, y: 337.6 },
     { x: 946.7, y: 337.6 }
   ],
-  placeholderSize: { width: 402.9, height: 537.2 }, // Fixed slot size for each photo
-  templateSrc: 'template.png',                  // Collage template overlay
-  uploadLimit: 3,                               // Max number of photos to upload
-  maxCopies: 5,                                 // Restrict number of copies
-  uploadURL: 'https://script.google.com/macros/s/AKfycbwaVXXhFHBWMhJG2a0WyWLM_BmiEeG-GXGpVzwbOaoKKvxcZwVFQpemO_hXOtEJT0A/exec',
-  driveFolderId: '164s0L6MUUaRhYYBaBsvnV-w3pqqU-6U3' // Reference for backend integration
+  placeholderSize: { width: 402.9, height: 537.2 },
+  templateSrc: "template.png",
+  uploadLimit: 3,
+  maxCopies: 5,
+  uploadURL: "https://script.google.com/macros/s/AKfycbwaVXXhFHBWMhJG2a0WyWLM_BmiEeG-GXGpVzwbOaoKKvxcZwVFQpemO_hXOtEJT0A/exec"
 };
 
 // ==========================
-// CANVAS INITIALIZATION
+// CANVAS SETUP
 // ==========================
-const canvas = document.getElementById('previewCanvas');
-const ctx = canvas.getContext('2d');
-
+const canvas = document.getElementById("previewCanvas");
+const ctx = canvas.getContext("2d");
 canvas.width = CONFIG.canvas.width;
 canvas.height = CONFIG.canvas.height;
 
-// Track uploaded photos
-const photoInputs = Array.from(
-  { length: CONFIG.uploadLimit }, 
-  (_, i) => document.getElementById(`photo${i + 1}`)
+const photoInputs = Array.from({ length: CONFIG.uploadLimit }, (_, i) =>
+  document.getElementById(`photo${i + 1}`)
 );
 const uploadedImages = new Array(CONFIG.uploadLimit).fill(null);
 
-// Load the collage template (frame/background)
 let templateImg = new Image();
 templateImg.src = CONFIG.templateSrc;
+templateImg.onload = drawInitialTemplate;
 
-// Draw only the template (blank slate)
 function drawInitialTemplate() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
 }
 
-// Draw template + uploaded photos in placeholders
 function drawPreview() {
   drawInitialTemplate();
   uploadedImages.forEach((img, index) => {
@@ -56,14 +45,12 @@ function drawPreview() {
     const { x, y } = CONFIG.placeholders[index];
     const { width, height } = CONFIG.placeholderSize;
 
-    // Centering & scaling logic
     const centerX = x + width / 2;
     const centerY = y + height / 2;
     const scale = Math.min(width / img.width, height / img.height);
 
     const renderWidth = img.width * scale;
     const renderHeight = img.height * scale;
-
     const renderX = centerX - renderWidth / 2;
     const renderY = centerY - renderHeight / 2;
 
@@ -71,23 +58,20 @@ function drawPreview() {
   });
 }
 
-// Draw template on first load
-templateImg.onload = drawInitialTemplate;
-
 // ==========================
-// FILE UPLOAD HANDLING
+// PHOTO UPLOAD HANDLING
 // ==========================
 photoInputs.forEach((input, index) => {
-  input.addEventListener('change', (event) => {
+  input.addEventListener("change", (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function (e) {
+    reader.onload = (e) => {
       const img = new Image();
-      img.onload = function () {
+      img.onload = () => {
         uploadedImages[index] = img;
-        drawPreview(); // Redraw collage when new photo uploaded
+        drawPreview();
       };
       img.src = e.target.result;
     };
@@ -96,136 +80,100 @@ photoInputs.forEach((input, index) => {
 });
 
 // ==========================
-// LOADING / PROGRESS HANDLING
+// LOADING UI HANDLING
 // ==========================
-const printBtn = document.getElementById('confirmPrint');
-const progressContainer = document.getElementById('progressContainer');
-const progressBar = document.getElementById('progressBar');
-const progressText = document.getElementById('progressText');
+const printBtn = document.getElementById("confirmPrint");
+const progressContainer = document.getElementById("progressContainer");
+const progressBar = document.getElementById("progressBar");
+const progressText = document.getElementById("progressText");
 
-// Show progress UI
 function showProgress(msg) {
-  progressContainer.style.display = 'block';
-  progressText.textContent = msg || 'Uploading...';
-  progressBar.value = 20; // Start progress baseline
+  progressContainer.style.display = "block";
+  progressText.textContent = msg || "Uploading...";
+  progressBar.value = 20;
   printBtn.disabled = true;
 }
 
-// Update progress value + optional message
 function updateProgress(value, msg) {
   progressBar.value = value;
   if (msg) progressText.textContent = msg;
 }
 
-// Hide/reset progress UI
 function hideProgress() {
-  progressContainer.style.display = 'none';
+  progressContainer.style.display = "none";
   progressBar.value = 0;
   printBtn.disabled = false;
 }
 
-/**
- * Saves the uploaded image to Google Drive with the number of copies included in the filename.
- */
-function saveImageToDrive(imageBlob, timestamp, copies) {
-  const folder = DriveApp.getFolderById(FOLDER_ID);
-
-  // Get the current date and time
-  const date = new Date(timestamp);  // Timestamp from POST data
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-
-  // Convert the 24-hour clock to 12-hour clock
-  const hours12 = hours % 12;
-  const minutesFormatted = minutes < 10 ? '0' + minutes : minutes;
-  const dateString = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-
-  // Generate the filename
-  const fileName = `${copies}x_${'Name'}_${hours12}:${minutesFormatted} ${ampm}_${dateString}.jpg`; // Replace 'Name' with actual name
-
-  // Save the image
-  const file = folder.createFile(imageBlob);
-  file.setName(fileName);
-
-  Logger.log('File saved with name: ' + fileName);
-
-  return file;
-}
-
-
 // ==========================
-// DOWNLOAD HANDLER (JPEG)
+// DOWNLOAD COLLAGE (JPEG)
 // ==========================
-document.getElementById('downloadImage').addEventListener('click', () => {
+document.getElementById("downloadImage").addEventListener("click", () => {
   canvas.toBlob((blob) => {
     if (!blob) {
       alert("❌ Error creating image for download.");
       return;
     }
-    const link = document.createElement('a');
-    link.download = 'snapstrip-collage.jpg';
+    const link = document.createElement("a");
+    link.download = "snapstrip-collage.jpg";
     link.href = URL.createObjectURL(blob);
     link.click();
-  }, 'image/jpeg');
+  }, "image/jpeg");
 });
 
 // ==========================
-// PRINT HANDLER (UPLOAD TO GAS)
+// PRINT HANDLER
 // ==========================
-printBtn.addEventListener('click', () => {
-  const copies = parseInt(document.getElementById('copies').value, 10);
+printBtn.addEventListener("click", () => {
+  const copies = parseInt(document.getElementById("copies").value, 10);
+  const guestName = document.getElementById("guestName").value.trim();
 
-  // Validate copies selection
+  // Validate inputs
   if (isNaN(copies) || copies < 1 || copies > CONFIG.maxCopies) {
     alert(`⚠️ Please select between 1 and ${CONFIG.maxCopies} copies.`);
     return;
   }
+  if (!guestName) {
+    alert("⚠️ Please enter your name before printing.");
+    return;
+  }
 
-  showProgress('Preparing image...');
+  showProgress("Preparing image...");
 
   canvas.toBlob((blob) => {
     if (!blob) {
-      alert('❌ Something went wrong preparing the image.');
+      alert("❌ Something went wrong preparing the image.");
       hideProgress();
       return;
     }
 
     const fr = new FileReader();
     fr.onloadend = () => {
-      updateProgress(50, 'Uploading to print queue...');
+      updateProgress(50, "Uploading to print queue...");
 
-      // Log data before sending to Apps Script
-      console.log('Sending data:', {
-        photo: fr.result,          // Base64 JPEG
-        copies: String(copies),    // Copies requested
-        ts: String(Date.now())     // Client timestamp
-      });
+      const payload = {
+        photo: fr.result,
+        copies: String(copies),
+        ts: String(Date.now()),
+        name: guestName
+      };
+      console.log("Sending data:", payload);
 
-      // POST to Apps Script Web App
       fetch(CONFIG.uploadURL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',  // Correct content type
-        },
-        body: new URLSearchParams({
-  photo: fr.result,
-  copies: String(copies),
-  ts: String(Date.now()),
-  name: "Alice"  // Optional: add guest name
-})
-
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(payload)
       })
-        .then(response => response.json())  // Parse response as JSON
-        .then(data => {
+        .then((response) => response.json())
+        .then((data) => {
           if (data.ok) {
-            updateProgress(100, '✅ Uploaded successfully!');
-            alert("✅ Print request sent!");
+            updateProgress(100, "✅ Uploaded successfully!");
+            alert(`✅ Print request sent for ${guestName}`);
           } else {
-            throw new Error(data.error || 'Upload failed.');
+            throw new Error(data.error || "Upload failed.");
           }
         })
-        .catch(err => {
+        .catch((err) => {
           alert("⚠️ Error: " + err.message);
         })
         .finally(() => {
@@ -233,8 +181,6 @@ printBtn.addEventListener('click', () => {
         });
     };
 
-    // Convert blob → base64
     fr.readAsDataURL(blob);
-  }, 'image/jpeg', 0.92); // Slight compression for balance
+  }, "image/jpeg", 0.92);
 });
-
